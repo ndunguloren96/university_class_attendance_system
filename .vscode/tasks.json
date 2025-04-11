@@ -1,0 +1,27 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "type": "shell",
+      "command": "gcc",
+      "args": [
+        "-g", // Generate debug information
+        "${workspaceFolder}/src/main.c", // Main source file
+        "${workspaceFolder}/src/auth_functions.c", // Include all .c files
+        "${workspaceFolder}/src/auth_system.c",
+        "${workspaceFolder}/src/user_data.c",
+        "-I",
+        "${workspaceFolder}/include", // Include directory for header files
+        "-o",
+        "${workspaceFolder}/bin/a.out" // Output executable in the bin directory
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": ["$gcc"],
+      "detail": "Generated task for building C project"
+    }
+  ]
+}
