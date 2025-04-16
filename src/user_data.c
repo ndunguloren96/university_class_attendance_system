@@ -29,3 +29,35 @@ void register_user() {
     save_user(new_user);
     printf("Registration successful!\n");
 }
+
+
+// Function to check user credentials during login
+int login_user() {
+    char reg_number[MAX_LENGTH], password[MAX_LENGTH];
+    User user;
+    int found = 0;
+
+    printf("Enter your registration number: ");
+    fgets(reg_number, MAX_LENGTH, stdin);
+    reg_number[strcspn(reg_number, "\n")] = '\0';
+
+    printf("Enter your password: ");
+    fgets(password, MAX_LENGTH, stdin);
+    password[strcspn(password, "\n")] = '\0';
+
+    FILE *file = fopen("./bin/user_data.txt", "r");
+    if (file == NULL) {
+        perror("Error opening file");
+        return 0;
+    }
+
+    while (fscanf(file, "%s %s", user.registration_number, user.password) != EOF) {
+        if (strcmp(reg_number, user.registration_number) == 0 && strcmp(password, user.password) == 0) {
+            found = 1;
+            break;
+        }
+    }
+
+    fclose(file);
+    return found;
+}
