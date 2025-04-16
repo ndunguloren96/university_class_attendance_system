@@ -7,9 +7,9 @@
 // Appends the user's registration number and password to the user data file
 void save_user(User user) {
     FILE *file = fopen("./bin/user_data.txt", "a");  // Open file in append mode
-    if (file == NULL) {
+    if (!file) {
         perror("Error opening file");  // Print error if file cannot be opened
-        exit(1);
+        return;  // Avoid exiting the program
     }
     fprintf(file, "%s %s\n", user.registration_number, user.password);  // Write user data
     fclose(file);  // Close the file
@@ -47,13 +47,13 @@ int login_user() {
     password[strcspn(password, "\n")] = '\0';  // Remove newline character
 
     FILE *file = fopen("./bin/user_data.txt", "r");  // Open file in read mode
-    if (file == NULL) {
+    if (!file) {
         perror("Error opening file");  // Print error if file cannot be opened
         return 0;
     }
 
     // Check each record in the file for a match
-    while (fscanf(file, "%s %s", user.registration_number, user.password) != EOF) {
+    while (fscanf(file, "%s %s", user.registration_number, user.password) == 2) {
         if (strcmp(reg_number, user.registration_number) == 0 && strcmp(password, user.password) == 0) {
             found = 1;  // Match found
             break;
