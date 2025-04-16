@@ -1,0 +1,65 @@
+#include "../include/user_data.h"
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+// Save user data to the file
+// Appends the user's registration number and password to the user data file
+void save_user(User user) {
+    FILE *file = fopen("./bin/user_data.txt", "a");  // Open file in append mode
+    if (!file) {
+        perror("Error opening file");  // Print error if file cannot be opened
+        return;  // Avoid exiting the program
+    }
+    fprintf(file, "%s %s\n", user.registration_number, user.password);  // Write user data
+    fclose(file);  // Close the file
+}
+
+// Function to register a user
+// Prompts the user for registration details and saves them
+void register_user() {
+    User new_user;
+    printf("Enter your registration number: ");
+    fgets(new_user.registration_number, MAX_LENGTH, stdin);
+    new_user.registration_number[strcspn(new_user.registration_number, "\n")] = '\0'; // Remove newline character
+
+    printf("Enter your password: ");
+    fgets(new_user.password, MAX_LENGTH, stdin);
+    new_user.password[strcspn(new_user.password, "\n")] = '\0'; // Remove newline character
+
+    save_user(new_user);  // Save the new user's data
+    printf("Registration successful!\n");
+}
+
+// Function to check user credentials during login
+// Verifies if the entered registration number and password match any record
+int login_user() {
+    char reg_number[MAX_LENGTH], password[MAX_LENGTH];
+    User user;
+    int found = 0;
+
+    printf("Enter your registration number: ");
+    fgets(reg_number, MAX_LENGTH, stdin);
+    reg_number[strcspn(reg_number, "\n")] = '\0';  // Remove newline character
+
+    printf("Enter your password: ");
+    fgets(password, MAX_LENGTH, stdin);
+    password[strcspn(password, "\n")] = '\0';  // Remove newline character
+
+    FILE *file = fopen("./bin/user_data.txt", "r");  // Open file in read mode
+    if (!file) {
+        perror("Error opening file");  // Print error if file cannot be opened
+        return 0;
+    }
+
+    // Check each record in the file for a match
+    while (fscanf(file, "%s %s", user.registration_number, user.password) == 2) {
+        if (strcmp(reg_number, user.registration_number) == 0 && strcmp(password, user.password) == 0) {
+            found = 1;  // Match found
+            break;
+        }
+    }
+
+    fclose(file);  // Close the file
+    return found;  // Return whether a match was found
+}
