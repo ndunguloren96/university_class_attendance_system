@@ -30,7 +30,8 @@ void register_user() {
 }
 
 // Function to check user credentials during login
-int login_user() {
+// Now accepts a name buffer to set on successful login
+int login_user(char *name) {
     char reg_number[MAX_LENGTH], password[MAX_LENGTH];
     User user;
     int found = 0;
@@ -52,6 +53,10 @@ int login_user() {
     while (fscanf(file, "%s %s", user.registration_number, user.password) != EOF) {
         if (strcmp(reg_number, user.registration_number) == 0 && strcmp(password, user.password) == 0) {
             found = 1;
+            if (name) {
+                strncpy(name, user.registration_number, MAX_LENGTH);
+                name[MAX_LENGTH - 1] = '\0';
+            }
             break;
         }
     }
