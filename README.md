@@ -35,12 +35,6 @@ This project is a simple C-based system for managing user registration and login
    ```
 2. Follow the on-screen instructions to register or log in.
 
-## Future Improvements
-
-- Encrypt user passwords for better security.
-- Implement a database for scalable data storage.
-- Add a graphical user interface (GUI).
-
 ## License
 
 This project is licensed under the MIT License. See the `LICENSE` file for details.

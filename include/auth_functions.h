@@ -2,6 +2,7 @@
 #define AUTH_FUNCTIONS_H
 
 #include "auth_system.h"
+#include "user_data.h"
 
 // Function declarations related to function operations for authentication
 void clear_input_buffer();

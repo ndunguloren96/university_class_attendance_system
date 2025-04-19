@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <string.h> // Include string.h for strcmp function
+#include <string.h>
 #include "auth_system.h"
 
 // Function to authenticate user

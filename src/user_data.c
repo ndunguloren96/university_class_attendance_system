@@ -4,19 +4,17 @@
 #include <stdlib.h>
 
 // Save user data to the file
-// Appends the user's registration number and password to the user data file
 void save_user(User user) {
     FILE *file = fopen("./bin/user_data.txt", "a");  // Open file in append mode
-    if (!file) {
-        perror("Error opening file");  // Print error if file cannot be opened
-        return;  // Avoid exiting the program
+    if (file == NULL) {
+        perror("Error opening file");
+        exit(1);
     }
-    fprintf(file, "%s %s\n", user.registration_number, user.password);  // Write user data
-    fclose(file);  // Close the file
+    fprintf(file, "%s %s\n", user.registration_number, user.password);
+    fclose(file);
 }
 
 // Function to register a user
-// Prompts the user for registration details and saves them
 void register_user() {
     User new_user;
     printf("Enter your registration number: ");
@@ -27,39 +25,42 @@ void register_user() {
     fgets(new_user.password, MAX_LENGTH, stdin);
     new_user.password[strcspn(new_user.password, "\n")] = '\0'; // Remove newline character
 
-    save_user(new_user);  // Save the new user's data
+    save_user(new_user);
     printf("Registration successful!\n");
 }
 
 // Function to check user credentials during login
-// Verifies if the entered registration number and password match any record
-int login_user() {
+// Now accepts a name buffer to set on successful login
+int login_user(char *name) {
     char reg_number[MAX_LENGTH], password[MAX_LENGTH];
     User user;
     int found = 0;
 
     printf("Enter your registration number: ");
     fgets(reg_number, MAX_LENGTH, stdin);
-    reg_number[strcspn(reg_number, "\n")] = '\0';  // Remove newline character
+    reg_number[strcspn(reg_number, "\n")] = '\0';
 
     printf("Enter your password: ");
     fgets(password, MAX_LENGTH, stdin);
-    password[strcspn(password, "\n")] = '\0';  // Remove newline character
+    password[strcspn(password, "\n")] = '\0';
 
-    FILE *file = fopen("./bin/user_data.txt", "r");  // Open file in read mode
-    if (!file) {
-        perror("Error opening file");  // Print error if file cannot be opened
+    FILE *file = fopen("./bin/user_data.txt", "r");
+    if (file == NULL) {
+        perror("Error opening file");
         return 0;
     }
 
-    // Check each record in the file for a match
-    while (fscanf(file, "%s %s", user.registration_number, user.password) == 2) {
+    while (fscanf(file, "%s %s", user.registration_number, user.password) != EOF) {
         if (strcmp(reg_number, user.registration_number) == 0 && strcmp(password, user.password) == 0) {
-            found = 1;  // Match found
+            found = 1;
+            if (name) {
+                strncpy(name, user.registration_number, MAX_LENGTH);
+                name[MAX_LENGTH - 1] = '\0';
+            }
             break;
         }
     }
 
-    fclose(file);  // Close the file
-    return found;  // Return whether a match was found
+    fclose(file);
+    return found;
 }

@@ -1,5 +1,6 @@
 #include "auth_functions.h"
 #include <stdio.h>
+#include "user_data.h"
 
 void clear_input_buffer() {
     while (getchar() != '\n');  // Flush input buffer
@@ -10,8 +11,10 @@ void handle_registration() {
 }
 
 void handle_login() {
-    if (login_user()) {
+    char name[MAX_LENGTH];
+    if (login_user(name)) {
         printf("Login successful!\n");
+        printf("Welcome %s\n", name);
     } else {
         printf("Invalid credentials.\n");
     }
