@@ -11,7 +11,7 @@ typedef struct {
 
 // Function declarations related to user data operations
 void save_user(User user);
-int login_user();
+int login_user(char *name); // Updated to accept name buffer
 void register_user();
 
 #endif // USER_DATA_H
