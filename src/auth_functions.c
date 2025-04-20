@@ -2,10 +2,6 @@
 #include <stdio.h>
 #include "user_data.h"
 
-void clear_input_buffer() {
-    while (getchar() != '\n');  // Flush input buffer
-}
-
 void handle_registration() {
     register_user();  // Call the register_user function
 }
