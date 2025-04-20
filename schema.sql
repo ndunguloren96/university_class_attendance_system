@@ -19,3 +19,14 @@ CREATE TABLE courses (
     FOREIGN KEY (instructor_id) REFERENCES users(id)
 );
 
+-- ENROLLMENTS: Students enrolled in courses
+CREATE TABLE enrollments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    course_id INTEGER NOT NULL,
+    enrolled_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (course_id) REFERENCES courses(id),
+    UNIQUE(user_id, course_id)
+);
+
