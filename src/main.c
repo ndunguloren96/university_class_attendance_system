@@ -10,10 +10,12 @@
 #define ADMIN_PASSWORD "admin123"
 
 void display_main_menu() {
-    printf("\nWelcome to University Class Attendance System\n");
+    printf("\nTHE CO-OPERATIVE UNIVERSITY OF KENYA\n");
+    printf("Welcome to University Class Attendance System\n");
     printf("1. Register\n");
     printf("2. Login\n");
-    printf("3. Exit\n");
+    printf("3. Reset Password\n");
+    printf("4. Exit\n");
     printf("Enter your choice: ");
 }
 
@@ -90,6 +92,9 @@ int main() {
                     break;
                 }
                 case 3:
+                    reset_password();  // Call to reset password
+                    break;
+                case 4:
                     printf("Exiting program.\n");
                     return 0;  // Exit the program
                 default:
