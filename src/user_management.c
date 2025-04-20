@@ -6,6 +6,15 @@
 
 void register_user() {
     char reg_number[MAX_LENGTH], password[MAX_LENGTH], confirm_password[MAX_LENGTH];
+    char first_name[MAX_LENGTH], last_name[MAX_LENGTH];
+    printf("Enter your first name: ");
+    fgets(first_name, MAX_LENGTH, stdin);
+    first_name[strcspn(first_name, "\n")] = '\0';
+
+    printf("Enter your last name: ");
+    fgets(last_name, MAX_LENGTH, stdin);
+    last_name[strcspn(last_name, "\n")] = '\0';
+
     printf("Enter your registration number: ");
     fgets(reg_number, MAX_LENGTH, stdin);
     reg_number[strcspn(reg_number, "\n")] = '\0';
@@ -43,7 +52,7 @@ void register_user() {
         return;
     }
 
-    const char *insert_sql = "INSERT INTO users (registration_number, password) VALUES (?, ?);";
+    const char *insert_sql = "INSERT INTO users (registration_number, password, first_name, last_name) VALUES (?, ?, ?, ?);";
     sqlite3_stmt *insert_stmt;
     if (sqlite3_prepare_v2(db, insert_sql, -1, &insert_stmt, NULL) != SQLITE_OK) {
         fprintf(stderr, "Error preparing statement (insert_sql): %s\n", sqlite3_errmsg(db));
@@ -51,6 +60,8 @@ void register_user() {
     }
     sqlite3_bind_text(insert_stmt, 1, reg_number, -1, SQLITE_STATIC);
     sqlite3_bind_text(insert_stmt, 2, password, -1, SQLITE_STATIC);
+    sqlite3_bind_text(insert_stmt, 3, first_name, -1, SQLITE_STATIC);
+    sqlite3_bind_text(insert_stmt, 4, last_name, -1, SQLITE_STATIC);
 
     if (sqlite3_step(insert_stmt) == SQLITE_DONE) {
         printf("Registration successful! You can now log in.\n");
@@ -72,7 +83,7 @@ int login_user(char *name) {
     fgets(password, MAX_LENGTH, stdin);
     password[strcspn(password, "\n")] = '\0';
 
-    const char *sql = "SELECT registration_number FROM users WHERE registration_number = ? AND password = ?;";
+    const char *sql = "SELECT first_name, last_name FROM users WHERE registration_number = ? AND password = ?;";
     sqlite3_stmt *stmt;
     sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
     sqlite3_bind_text(stmt, 1, reg_number, -1, SQLITE_STATIC);
@@ -81,8 +92,10 @@ int login_user(char *name) {
     int found = 0;
     if (sqlite3_step(stmt) == SQLITE_ROW) {
         found = 1;
-        strncpy(name, (const char *)sqlite3_column_text(stmt, 0), MAX_LENGTH);
-        name[MAX_LENGTH - 1] = '\0'; // Ensure null-termination
+        snprintf(name, MAX_LENGTH, "%s %s",
+            (const char *)sqlite3_column_text(stmt, 0),
+            (const char *)sqlite3_column_text(stmt, 1));
+        name[MAX_LENGTH - 1] = '\0';
     }
 
     sqlite3_finalize(stmt);
