@@ -40,6 +40,9 @@ int initialize_database() {
         return 0;
     }
 
+    // Ensure auto-commit mode is enabled
+    sqlite3_exec(db, "COMMIT;", 0, 0, &err_msg);
+
     return 1;
 }
 
