@@ -9,24 +9,26 @@ This project is a simple C-based system for managing user registration, login, a
 - **Password Reset**: Allows users to reset their password if they forget it.
 - **Attendance Management**: Users can mark and view attendance.
 - **Admin Features**: Admins can view all students and attendance records.
-- **File-Based Storage**: User data and attendance records are stored in text files for simplicity.
+- **Database Storage**: User data and attendance records are stored in an SQLite database (`university_attendance.db`).
 
 ## File Structure
 
 - **`src/`**: Contains the source code files.
   - `main.c`: Entry point of the program.
-  - `user_data.c`: Handles user data operations like registration, login, and password reset.
+  - `user_management.c`: Handles user data operations like registration, login, and password reset using the database.
   - `auth_functions.c`: Provides helper functions for authentication.
   - `auth_system.c`: Implements the core authentication logic.
   - `attendance.c`: Handles attendance marking and viewing.
   - `student_report.c`: Handles student report generation and admin features.
   - `utils.c`: Provides utility functions like input handling.
+  - `database.c`: Handles database initialization and closing.
 - **`include/`**: Contains header files for the project.
-- **`bin/`**: Stores the compiled executable and user data file.
+- **`bin/`**: Stores the compiled executable.
+- **`university_attendance.db`**: SQLite database file.
 
 ## How to Build
 
-1. Ensure you have GCC installed.
+1. Ensure you have GCC and SQLite development libraries installed.
 2. Run the following command to compile the project:
    ```bash
    make
