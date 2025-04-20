@@ -30,3 +30,13 @@ CREATE TABLE enrollments (
     UNIQUE(user_id, course_id)
 );
 
+-- SESSIONS: Each class session for a course
+CREATE TABLE sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    course_id INTEGER NOT NULL,
+    session_date TEXT NOT NULL,
+    topic TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (course_id) REFERENCES courses(id)
+);
+
