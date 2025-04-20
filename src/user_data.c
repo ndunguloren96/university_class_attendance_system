@@ -64,3 +64,45 @@ int login_user(char *name) {
     fclose(file);
     return found;
 }
+
+// Function to reset a user's password
+void reset_password() {
+    char reg_number[MAX_LENGTH], new_password[MAX_LENGTH];
+    User user;
+    int found = 0;
+
+    printf("Enter your registration number: ");
+    fgets(reg_number, MAX_LENGTH, stdin);
+    reg_number[strcspn(reg_number, "\n")] = '\0';
+
+    FILE *file = fopen("./bin/user_data.txt", "r");
+    FILE *temp_file = fopen("./bin/temp_user_data.txt", "w");
+    if (file == NULL || temp_file == NULL) {
+        perror("Error opening file");
+        return;
+    }
+
+    while (fscanf(file, "%s %s", user.registration_number, user.password) != EOF) {
+        if (strcmp(reg_number, user.registration_number) == 0) {
+            found = 1;
+            printf("Enter your new password: ");
+            fgets(new_password, MAX_LENGTH, stdin);
+            new_password[strcspn(new_password, "\n")] = '\0';
+            fprintf(temp_file, "%s %s\n", user.registration_number, new_password);
+        } else {
+            fprintf(temp_file, "%s %s\n", user.registration_number, user.password);
+        }
+    }
+
+    fclose(file);
+    fclose(temp_file);
+
+    if (found) {
+        remove("./bin/user_data.txt");
+        rename("./bin/temp_user_data.txt", "./bin/user_data.txt");
+        printf("Password reset successful!\n");
+    } else {
+        remove("./bin/temp_user_data.txt");
+        printf("Registration number not found.\n");
+    }
+}
