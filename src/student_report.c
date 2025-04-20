@@ -5,8 +5,40 @@
 #include "../include/user_management.h"
 
 void generate_student_report(const char* registration_number) {
-    printf("Generating report for student: %s\n", registration_number);
-    // Implement actual report logic here
+    const char *sql = "SELECT date, status FROM attendance WHERE registration_number = ? ORDER BY date;";
+    sqlite3_stmt *stmt;
+    int total = 0, present = 0, absent = 0;
+
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+        fprintf(stderr, "Error preparing statement (generate_student_report): %s\n", sqlite3_errmsg(db));
+        return;
+    }
+    sqlite3_bind_text(stmt, 1, registration_number, -1, SQLITE_STATIC);
+
+    printf("Attendance Report for Student: %s\n", registration_number);
+    printf("--------------------------------------------\n");
+    printf("%-15s | %-10s\n", "Date", "Status");
+    printf("--------------------------------------------\n");
+
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        const char *date = (const char *)sqlite3_column_text(stmt, 0);
+        int status = sqlite3_column_int(stmt, 1);
+        printf("%-15s | %-10s\n", date, (status == 1 ? "Present" : "Absent"));
+        total++;
+        if (status == 1) present++;
+        else absent++;
+    }
+    sqlite3_finalize(stmt);
+
+    if (total == 0) {
+        printf("No attendance records found for this student.\n");
+    } else {
+        printf("--------------------------------------------\n");
+        printf("Total Sessions: %d\n", total);
+        printf("Present: %d\n", present);
+        printf("Absent: %d\n", absent);
+        printf("Attendance Percentage: %.2f%%\n", total > 0 ? (present * 100.0 / total) : 0.0);
+    }
 }
 
 void view_all_students() {
