@@ -75,6 +75,7 @@ int main() {
     int choice;
     char first_name[MAX_LENGTH], last_name[MAX_LENGTH], role[MAX_LENGTH];
     char reg_number[MAX_LENGTH];
+    int user_id = 0;
     int logged_in = 0;
     int is_admin = 0;
 
@@ -107,6 +108,18 @@ int main() {
                     clear_input_buffer();
                     if (login_type == 1) {
                         if (login_user(first_name, last_name, role)) {
+                            // Fetch user_id
+                            const char *sql = "SELECT id FROM users WHERE first_name = ? AND last_name = ? AND role = ?;";
+                            sqlite3_stmt *stmt;
+                            sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
+                            sqlite3_bind_text(stmt, 1, first_name, -1, SQLITE_STATIC);
+                            sqlite3_bind_text(stmt, 2, last_name, -1, SQLITE_STATIC);
+                            sqlite3_bind_text(stmt, 3, role, -1, SQLITE_STATIC);
+                            if (sqlite3_step(stmt) == SQLITE_ROW) {
+                                user_id = sqlite3_column_int(stmt, 0);
+                            }
+                            sqlite3_finalize(stmt);
+
                             printf("Welcome, %s %s!\n", first_name, last_name);
                             logged_in = 1;
                             is_admin = (strcmp(role, "admin") == 0);
@@ -138,55 +151,34 @@ int main() {
                     pause_and_clear();
             }
         } else {
-            display_user_menu(is_admin);
-            if (scanf("%d", &choice) != 1) {
-                printf("Invalid input. Please enter a number.\n");
-                clear_input_buffer();
-                pause_and_clear();
-                continue;
-            }
-            clear_input_buffer();
             if (is_admin) {
+                display_user_menu(is_admin);
+                if (scanf("%d", &choice) != 1) {
+                    printf("Invalid input. Please enter a number.\n");
+                    clear_input_buffer();
+                    pause_and_clear();
+                    continue;
+                }
+                clear_input_buffer();
                 switch (choice) {
-                    case 1: {
-                        printf("\n--- Mark Attendance ---\n");
-                        char date[20];
-                        int status;
-                        printf("Enter registration number: ");
-                        read_input(reg_number, sizeof(reg_number));
-                        printf("Enter date (YYYY-MM-DD): ");
-                        read_input(date, sizeof(date));
-                        printf("Enter attendance status (1 for present, 0 for absent): ");
-                        if (scanf("%d", &status) != 1 || (status != 0 && status != 1)) {
-                            printf("Invalid status. Please enter 1 or 0.\n");
-                            clear_input_buffer();
-                            pause_and_clear();
-                            break;
-                        }
-                        clear_input_buffer();
-                        mark_attendance(reg_number, date, status);
+                    case 1:
+                        printf("\n--- Add Course ---\n");
+                        add_course(user_id);
                         pause_and_clear();
                         break;
-                    }
-                    case 2: {
-                        printf("\n--- View Attendance ---\n");
-                        printf("Enter registration number: ");
-                        read_input(reg_number, sizeof(reg_number));
-                        view_attendance(reg_number);
+                    case 2:
+                        printf("\n--- Remove Student ---\n");
+                        remove_student();
                         pause_and_clear();
                         break;
-                    }
-                    case 3: {
-                        printf("\n--- Generate Student Report ---\n");
-                        printf("Enter registration number: ");
-                        read_input(reg_number, sizeof(reg_number));
-                        generate_student_report(reg_number);
-                        pause_and_clear();
-                        break;
-                    }
-                    case 4:
+                    case 3:
                         printf("\n--- All Registered Students ---\n");
-                        view_all_students();
+                        list_users("student");
+                        pause_and_clear();
+                        break;
+                    case 4:
+                        printf("\n--- All Courses ---\n");
+                        list_courses();
                         pause_and_clear();
                         break;
                     case 5:
@@ -208,44 +200,69 @@ int main() {
                         printf("Invalid choice. Please enter a number between 1 and 7.\n");
                         pause_and_clear();
                 }
-            } else {
+            } else if (strcmp(role, "instructor") == 0) {
+                printf("\n--- Instructor Menu ---\n");
+                printf("1. Add Course\n2. Add Session\n3. Mark Taught Session\n4. View My Courses\n5. Logout\n6. Exit\nEnter your choice: ");
+                if (scanf("%d", &choice) != 1) {
+                    printf("Invalid input. Please enter a number.\n");
+                    clear_input_buffer();
+                    pause_and_clear();
+                    continue;
+                }
+                clear_input_buffer();
                 switch (choice) {
-                    case 1: {
-                        printf("\n--- Mark Attendance ---\n");
-                        char date[20];
-                        int status;
-                        printf("Enter your registration number: ");
-                        read_input(reg_number, sizeof(reg_number));
-                        printf("Enter date (YYYY-MM-DD): ");
-                        read_input(date, sizeof(date));
-                        printf("Enter attendance status (1 for present, 0 for absent): ");
-                        if (scanf("%d", &status) != 1 || (status != 0 && status != 1)) {
-                            printf("Invalid status. Please enter 1 or 0.\n");
-                            clear_input_buffer();
-                            pause_and_clear();
-                            break;
-                        }
-                        clear_input_buffer();
-                        mark_attendance(reg_number, date, status);
+                    case 1:
+                        add_course(user_id);
                         pause_and_clear();
                         break;
-                    }
-                    case 2: {
-                        printf("\n--- View Attendance ---\n");
-                        printf("Enter your registration number: ");
-                        read_input(reg_number, sizeof(reg_number));
-                        view_attendance(reg_number);
+                    case 2:
+                        add_session(user_id);
                         pause_and_clear();
                         break;
-                    }
-                    case 3: {
-                        printf("\n--- Generate Student Report ---\n");
-                        printf("Enter your registration number: ");
-                        read_input(reg_number, sizeof(reg_number));
-                        generate_student_report(reg_number);
+                    case 3:
+                        mark_attendance_session(user_id, role);
                         pause_and_clear();
                         break;
-                    }
+                    case 4:
+                        list_enrollments(user_id, "instructor");
+                        pause_and_clear();
+                        break;
+                    case 5:
+                        printf("Logged out successfully.\n");
+                        logged_in = 0;
+                        pause_and_clear();
+                        break;
+                    case 6:
+                        printf("Thank you for using the University Class Attendance System. Goodbye!\n");
+                        close_database();
+                        return 0;
+                    default:
+                        printf("Invalid choice.\n");
+                        pause_and_clear();
+                }
+            } else if (strcmp(role, "student") == 0) {
+                printf("\n--- Student Menu ---\n");
+                printf("1. Enroll in Course\n2. Mark Attendance\n3. View My Courses\n4. Logout\n5. Exit\nEnter your choice: ");
+                if (scanf("%d", &choice) != 1) {
+                    printf("Invalid input. Please enter a number.\n");
+                    clear_input_buffer();
+                    pause_and_clear();
+                    continue;
+                }
+                clear_input_buffer();
+                switch (choice) {
+                    case 1:
+                        enroll_in_course(user_id);
+                        pause_and_clear();
+                        break;
+                    case 2:
+                        mark_attendance_session(user_id, role);
+                        pause_and_clear();
+                        break;
+                    case 3:
+                        list_enrollments(user_id, "student");
+                        pause_and_clear();
+                        break;
                     case 4:
                         printf("Logged out successfully.\n");
                         logged_in = 0;
@@ -256,7 +273,7 @@ int main() {
                         close_database();
                         return 0;
                     default:
-                        printf("Invalid choice. Please enter a number between 1 and 5.\n");
+                        printf("Invalid choice.\n");
                         pause_and_clear();
                 }
             }
