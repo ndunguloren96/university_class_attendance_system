@@ -13,5 +13,6 @@ typedef struct {
 void save_user(User user);
 int login_user(char *name); // Updated to accept name buffer
 void register_user();
+void reset_password(); // New function to reset password
 
 #endif // USER_DATA_H
