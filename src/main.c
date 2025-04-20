@@ -4,7 +4,7 @@
 #include "attendance.h"
 #include "student_report.h"
 #include "utils.h"  // Include the utils header
-#include "user_data.h"
+#include "database.h" // Add this include
 
 #define ADMIN_USERNAME "admin"
 #define ADMIN_PASSWORD "admin123"
@@ -51,6 +51,11 @@ int admin_login() {
 }
 
 int main() {
+    if (!initialize_database()) {
+        fprintf(stderr, "Failed to initialize database. Exiting.\n");
+        return 1;
+    }
+
     int choice;
     char name[MAX_LENGTH];
     char reg_number[MAX_LENGTH];
@@ -96,6 +101,7 @@ int main() {
                     break;
                 case 4:
                     printf("Exiting program.\n");
+                    close_database(); // Close the database before exiting
                     return 0;  // Exit the program
                 default:
                     printf("Invalid choice. Please try again.\n");
@@ -143,6 +149,7 @@ int main() {
                         break;
                     case 7:
                         printf("Exiting program.\n");
+                        close_database(); // Close the database before exiting
                         return 0;  // Exit the program
                     default:
                         printf("Invalid choice. Please try again.\n");
@@ -179,6 +186,7 @@ int main() {
                         break;
                     case 5:
                         printf("Exiting program.\n");
+                        close_database(); // Close the database before exiting
                         return 0;  // Exit the program
                     default:
                         printf("Invalid choice. Please try again.\n");
@@ -187,5 +195,6 @@ int main() {
         }
     }
 
+    close_database(); // Close the database before exiting
     return 0;
 }
