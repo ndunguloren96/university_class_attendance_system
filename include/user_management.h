@@ -1,7 +1,7 @@
 #ifndef USER_MANAGEMENT_H
 #define USER_MANAGEMENT_H
 
-#include "user_data.h"
+#define MAX_LENGTH 100
 
 // Function declarations for user management
 void register_user();

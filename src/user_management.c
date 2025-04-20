@@ -6,14 +6,17 @@
 
 void register_user() {
     char reg_number[MAX_LENGTH], password[MAX_LENGTH];
-    printf("Enter your registration number: ");
+    printf("Enter your registration number: ");   
     fgets(reg_number, MAX_LENGTH, stdin);
     reg_number[strcspn(reg_number, "\n")] = '\0';
 
     // Check if the registration number already exists
     const char *check_sql = "SELECT COUNT(*) FROM users WHERE registration_number = ?;";
     sqlite3_stmt *check_stmt;
-    sqlite3_prepare_v2(db, check_sql, -1, &check_stmt, NULL);
+    if (sqlite3_prepare_v2(db, check_sql, -1, &check_stmt, NULL) != SQLITE_OK) {
+        fprintf(stderr, "Error preparing statement (check_sql): %s\n", sqlite3_errmsg(db));
+        return;
+    }
     sqlite3_bind_text(check_stmt, 1, reg_number, -1, SQLITE_STATIC);
 
     int exists = 0;
@@ -33,13 +36,17 @@ void register_user() {
 
     const char *insert_sql = "INSERT INTO users (registration_number, password) VALUES (?, ?);";
     sqlite3_stmt *insert_stmt;
-    sqlite3_prepare_v2(db, insert_sql, -1, &insert_stmt, NULL);
+    if (sqlite3_prepare_v2(db, insert_sql, -1, &insert_stmt, NULL) != SQLITE_OK) {
+        fprintf(stderr, "Error preparing statement (insert_sql): %s\n", sqlite3_errmsg(db));
+        return;
+    }
     sqlite3_bind_text(insert_stmt, 1, reg_number, -1, SQLITE_STATIC);
     sqlite3_bind_text(insert_stmt, 2, password, -1, SQLITE_STATIC);
 
     if (sqlite3_step(insert_stmt) == SQLITE_DONE) {
         printf("Registration successful!\n");
     } else {
+        fprintf(stderr, "Error executing statement (insert_sql): %s\n", sqlite3_errmsg(db));
         printf("Error: Could not register user.\n");
     }
 
