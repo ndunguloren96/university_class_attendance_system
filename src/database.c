@@ -16,7 +16,12 @@ int initialize_database() {
     const char *user_table = "CREATE TABLE IF NOT EXISTS users ("
                              "id INTEGER PRIMARY KEY AUTOINCREMENT, "
                              "registration_number TEXT UNIQUE NOT NULL, "
-                             "password TEXT NOT NULL);";
+                             "password TEXT NOT NULL, "
+                             "first_name TEXT NOT NULL, "
+                             "last_name TEXT NOT NULL, "
+                             "email TEXT UNIQUE NOT NULL, "
+                             "role TEXT NOT NULL CHECK(role IN ('student','instructor','admin')), "
+                             "created_at DATETIME DEFAULT CURRENT_TIMESTAMP);";
 
     const char *attendance_table = "CREATE TABLE IF NOT EXISTS attendance ("
                                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
