@@ -171,3 +171,49 @@ void list_users(const char *role_filter) {
     }
     sqlite3_finalize(stmt);
 }
+
+void remove_student() {
+    char reg_number[MAX_LENGTH], admin_password[MAX_LENGTH];
+    printf("Enter the registration number of the student to remove: ");
+    fgets(reg_number, MAX_LENGTH, stdin);
+    reg_number[strcspn(reg_number, "\n")] = '\0';
+
+    printf("Enter admin password to confirm: ");
+    fgets(admin_password, MAX_LENGTH, stdin);
+    admin_password[strcspn(admin_password, "\n")] = '\0';
+
+    // Check admin password
+    const char *admin_sql = "SELECT password FROM users WHERE role = 'admin' LIMIT 1;";
+    sqlite3_stmt *admin_stmt;
+    if (sqlite3_prepare_v2(db, admin_sql, -1, &admin_stmt, NULL) != SQLITE_OK) {
+        fprintf(stderr, "Error preparing statement (admin_sql): %s\n", sqlite3_errmsg(db));
+        return;
+    }
+    int confirmed = 0;
+    if (sqlite3_step(admin_stmt) == SQLITE_ROW) {
+        const char *real_pass = (const char *)sqlite3_column_text(admin_stmt, 0);
+        if (strcmp(real_pass, admin_password) == 0) confirmed = 1;
+    }
+    sqlite3_finalize(admin_stmt);
+
+    if (!confirmed) {
+        printf("Admin password incorrect. Student not removed.\n");
+        return;
+    }
+
+    // Remove student
+    const char *del_sql = "DELETE FROM users WHERE registration_number = ? AND role = 'student';";
+    sqlite3_stmt *del_stmt;
+    if (sqlite3_prepare_v2(db, del_sql, -1, &del_stmt, NULL) != SQLITE_OK) {
+        fprintf(stderr, "Error preparing statement (del_sql): %s\n", sqlite3_errmsg(db));
+        return;
+    }
+    sqlite3_bind_text(del_stmt, 1, reg_number, -1, SQLITE_STATIC);
+
+    if (sqlite3_step(del_stmt) == SQLITE_DONE && sqlite3_changes(db) > 0) {
+        printf("Student removed successfully.\n");
+    } else {
+        printf("Error: Could not remove student. Check registration number.\n");
+    }
+    sqlite3_finalize(del_stmt);
+}

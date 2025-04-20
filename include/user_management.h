@@ -18,5 +18,6 @@ void register_user();
 int login_user(char *first_name, char *last_name, char *role);
 void reset_password();
 void list_users(const char *role_filter); // List users by role
+void remove_student();
 
 #endif // USER_MANAGEMENT_H
