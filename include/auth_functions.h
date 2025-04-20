@@ -2,7 +2,7 @@
 #define AUTH_FUNCTIONS_H
 
 #include "auth_system.h"
-#include "user_data.h"
+#include "user_management.h" // Use database-based user management
 
 // Function declarations related to function operations for authentication
 void clear_input_buffer();

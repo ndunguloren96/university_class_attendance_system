@@ -1,40 +1,100 @@
 #include "student_report.h"
 #include <stdio.h>
 #include <string.h>
-#include "user_data.h"
+#include "../include/database.h"
+#include "../include/user_management.h"
 
-// Simple student report (stub)
 void generate_student_report(const char* registration_number) {
-    printf("Generating report for student: %s\n", registration_number);
-    // Implement actual report logic here
+    const char *user_sql = "SELECT first_name, last_name FROM users WHERE registration_number = ?;";
+    sqlite3_stmt *user_stmt;
+    char full_name[2 * MAX_LENGTH] = "";
+
+    if (sqlite3_prepare_v2(db, user_sql, -1, &user_stmt, NULL) == SQLITE_OK) {
+        sqlite3_bind_text(user_stmt, 1, registration_number, -1, SQLITE_STATIC);
+        if (sqlite3_step(user_stmt) == SQLITE_ROW) {
+            snprintf(full_name, sizeof(full_name), "%s %s",
+                (const char *)sqlite3_column_text(user_stmt, 0),
+                (const char *)sqlite3_column_text(user_stmt, 1));
+        }
+    }
+    sqlite3_finalize(user_stmt);
+
+    const char *sql = "SELECT date, status FROM attendance WHERE registration_number = ? ORDER BY date;";
+    sqlite3_stmt *stmt;
+    int total = 0, present = 0, absent = 0;
+
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+        fprintf(stderr, "Error preparing statement (generate_student_report): %s\n", sqlite3_errmsg(db));
+        return;
+    }
+    sqlite3_bind_text(stmt, 1, registration_number, -1, SQLITE_STATIC);
+
+    printf("Attendance Report for: %s (%s)\n", full_name[0] ? full_name : "Unknown", registration_number);
+    printf("--------------------------------------------\n");
+    printf("%-15s | %-10s\n", "Date", "Status");
+    printf("--------------------------------------------\n");
+
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        const char *date = (const char *)sqlite3_column_text(stmt, 0);
+        int status = sqlite3_column_int(stmt, 1);
+        printf("%-15s | %-10s\n", date, (status == 1 ? "Present" : "Absent"));
+        total++;
+        if (status == 1) present++;
+        else absent++;
+    }
+    sqlite3_finalize(stmt);
+
+    if (total == 0) {
+        printf("No attendance records found for this student.\n");
+    } else {
+        printf("--------------------------------------------\n");
+        printf("Total Sessions: %d\n", total);
+        printf("Present: %d\n", present);
+        printf("Absent: %d\n", absent);
+        printf("Attendance Percentage: %.2f%%\n", total > 0 ? (present * 100.0 / total) : 0.0);
+    }
 }
 
-// Admin: view all students
 void view_all_students() {
-    FILE *file = fopen("./bin/user_data.txt", "r");
-    if (!file) {
-        printf("Could not open user data file.\n");
+    const char *sql = "SELECT registration_number, first_name, last_name FROM users;";
+    sqlite3_stmt *stmt;
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+        fprintf(stderr, "Error preparing statement (view_all_students): %s\n", sqlite3_errmsg(db));
         return;
     }
-    char reg[MAX_LENGTH], pass[MAX_LENGTH];
     printf("All registered students:\n");
-    while (fscanf(file, "%s %s", reg, pass) == 2) {
-        printf("Registration Number: %s\n", reg);
+    printf("%-15s | %-20s\n", "Reg Number", "Name");
+    printf("--------------------------------------------\n");
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        const char *reg = (const char *)sqlite3_column_text(stmt, 0);
+        const char *fname = (const char *)sqlite3_column_text(stmt, 1);
+        const char *lname = (const char *)sqlite3_column_text(stmt, 2);
+        char fullname[2 * MAX_LENGTH];
+        snprintf(fullname, sizeof(fullname), "%s %s", fname, lname);
+        printf("%-15s | %-20s\n", reg, fullname);
     }
-    fclose(file);
+    sqlite3_finalize(stmt);
 }
 
-// Admin: view all attendance
 void view_all_attendance() {
-    FILE *file = fopen("attendance_data.txt", "r");
-    if (!file) {
-        printf("Could not open attendance data file.\n");
+    const char *sql = "SELECT a.registration_number, u.first_name, u.last_name, a.date, a.status FROM attendance a JOIN users u ON a.registration_number = u.registration_number ORDER BY a.date;";
+    sqlite3_stmt *stmt;
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+        fprintf(stderr, "Error preparing statement (view_all_attendance): %s\n", sqlite3_errmsg(db));
         return;
     }
-    char line[256];
     printf("All attendance records:\n");
-    while (fgets(line, sizeof(line), file)) {
-        printf("%s", line);
+    printf("%-15s | %-20s | %-12s | %-10s\n", "Reg Number", "Name", "Date", "Status");
+    printf("---------------------------------------------------------------\n");
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        const char *reg = (const char *)sqlite3_column_text(stmt, 0);
+        const char *fname = (const char *)sqlite3_column_text(stmt, 1);
+        const char *lname = (const char *)sqlite3_column_text(stmt, 2);
+        const char *date = (const char *)sqlite3_column_text(stmt, 3);
+        int status = sqlite3_column_int(stmt, 4);
+        char fullname[2 * MAX_LENGTH];
+        snprintf(fullname, sizeof(fullname), "%s %s", fname, lname);
+        printf("%-15s | %-20s | %-12s | %-10s\n", reg, fullname, date, (status == 1 ? "Present" : "Absent"));
     }
-    fclose(file);
+    sqlite3_finalize(stmt);
 }

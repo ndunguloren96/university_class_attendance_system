@@ -10,7 +10,11 @@
         "${workspaceFolder}/src/main.c", // Main source file
         "${workspaceFolder}/src/auth_functions.c", // Include all .c files
         "${workspaceFolder}/src/auth_system.c",
-        "${workspaceFolder}/src/user_data.c",
+        "${workspaceFolder}/src/user_management.c",
+        "${workspaceFolder}/src/attendance.c",
+        "${workspaceFolder}/src/student_report.c",
+        "${workspaceFolder}/src/utils.c",
+        "${workspaceFolder}/src/database.c",
         "-I",
         "${workspaceFolder}/include", // Include directory for header files
         "-o",
