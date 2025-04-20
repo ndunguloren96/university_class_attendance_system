@@ -1,23 +1,20 @@
 #include <stdio.h>
 #include <string.h>
 #include "auth_system.h"
+#include "database.h"
 
 // Function to authenticate user
 int authenticate_user(const char *reg_number, const char *password) {
-    User user;
-    FILE *file = fopen("./bin/user_data.txt", "r");
-    if (file == NULL) {
-        perror("Error opening file");
-        return 0;
-    }
+    const char *sql = "SELECT registration_number FROM users WHERE registration_number = ? AND password = ?;";
+    sqlite3_stmt *stmt;
+    sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
+    sqlite3_bind_text(stmt, 1, reg_number, -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 2, password, -1, SQLITE_STATIC);
 
-    while (fscanf(file, "%s %s", user.registration_number, user.password) != EOF) {
-        if (strcmp(reg_number, user.registration_number) == 0 && strcmp(password, user.password) == 0) {
-            fclose(file);
-            return 1;
-        }
+    int found = 0;
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        found = 1;
     }
-
-    fclose(file);
-    return 0;
+    sqlite3_finalize(stmt);
+    return found;
 }
