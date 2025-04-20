@@ -40,3 +40,15 @@ CREATE TABLE sessions (
     FOREIGN KEY (course_id) REFERENCES courses(id)
 );
 
+-- ATTENDANCE: Attendance per student per session
+CREATE TABLE attendance (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    session_id INTEGER NOT NULL,
+    status INTEGER NOT NULL, -- 1=present, 0=absent
+    marked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (session_id) REFERENCES sessions(id),
+    UNIQUE(user_id, session_id)
+);
+
