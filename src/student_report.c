@@ -1,40 +1,42 @@
 #include "student_report.h"
 #include <stdio.h>
 #include <string.h>
-#include "user_data.h"
+#include "../include/database.h"
+#include "../include/user_management.h"
 
-// Simple student report (stub)
 void generate_student_report(const char* registration_number) {
     printf("Generating report for student: %s\n", registration_number);
     // Implement actual report logic here
 }
 
-// Admin: view all students
 void view_all_students() {
-    FILE *file = fopen("./bin/user_data.txt", "r");
-    if (!file) {
-        printf("Could not open user data file.\n");
+    const char *sql = "SELECT registration_number FROM users;";
+    sqlite3_stmt *stmt;
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+        fprintf(stderr, "Error preparing statement (view_all_students): %s\n", sqlite3_errmsg(db));
         return;
     }
-    char reg[MAX_LENGTH], pass[MAX_LENGTH];
     printf("All registered students:\n");
-    while (fscanf(file, "%s %s", reg, pass) == 2) {
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        const char *reg = (const char *)sqlite3_column_text(stmt, 0);
         printf("Registration Number: %s\n", reg);
     }
-    fclose(file);
+    sqlite3_finalize(stmt);
 }
 
-// Admin: view all attendance
 void view_all_attendance() {
-    FILE *file = fopen("attendance_data.txt", "r");
-    if (!file) {
-        printf("Could not open attendance data file.\n");
+    const char *sql = "SELECT registration_number, date, status FROM attendance;";
+    sqlite3_stmt *stmt;
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+        fprintf(stderr, "Error preparing statement (view_all_attendance): %s\n", sqlite3_errmsg(db));
         return;
     }
-    char line[256];
     printf("All attendance records:\n");
-    while (fgets(line, sizeof(line), file)) {
-        printf("%s", line);
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        const char *reg = (const char *)sqlite3_column_text(stmt, 0);
+        const char *date = (const char *)sqlite3_column_text(stmt, 1);
+        int status = sqlite3_column_int(stmt, 2);
+        printf("Registration Number: %s, Date: %s, Status: %s\n", reg, date, (status == 1 ? "Present" : "Absent"));
     }
-    fclose(file);
+    sqlite3_finalize(stmt);
 }
