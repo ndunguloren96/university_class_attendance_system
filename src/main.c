@@ -73,7 +73,7 @@ int main() {
     }
 
     int choice;
-    char name[MAX_LENGTH];
+    char first_name[MAX_LENGTH], last_name[MAX_LENGTH], role[MAX_LENGTH];
     char reg_number[MAX_LENGTH];
     int logged_in = 0;
     int is_admin = 0;
@@ -106,10 +106,10 @@ int main() {
                     }
                     clear_input_buffer();
                     if (login_type == 1) {
-                        if (login_user(name)) {
-                            printf("Welcome, %s!\n", name);
+                        if (login_user(first_name, last_name, role)) {
+                            printf("Welcome, %s %s!\n", first_name, last_name);
                             logged_in = 1;
-                            is_admin = 0;
+                            is_admin = (strcmp(role, "admin") == 0);
                         } else {
                             printf("Invalid credentials. Please try again.\n");
                         }

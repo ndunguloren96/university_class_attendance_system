@@ -8,11 +8,11 @@ void handle_registration() {
 }
 
 void handle_login() {
-    char name[MAX_LENGTH];
+    char first_name[MAX_LENGTH], last_name[MAX_LENGTH], role[MAX_LENGTH];
     printf("Please enter your login credentials.\n");
-    if (login_user(name)) {
+    if (login_user(first_name, last_name, role)) {
         printf("Login successful!\n");
-        printf("Welcome %s\n", name);
+        printf("Welcome %s %s\n", first_name, last_name);
     } else {
         printf("Invalid credentials. Please try again.\n");
     }
