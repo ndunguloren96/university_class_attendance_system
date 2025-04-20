@@ -5,6 +5,20 @@
 #include "../include/user_management.h"
 
 void generate_student_report(const char* registration_number) {
+    const char *user_sql = "SELECT first_name, last_name FROM users WHERE registration_number = ?;";
+    sqlite3_stmt *user_stmt;
+    char full_name[2 * MAX_LENGTH] = "";
+
+    if (sqlite3_prepare_v2(db, user_sql, -1, &user_stmt, NULL) == SQLITE_OK) {
+        sqlite3_bind_text(user_stmt, 1, registration_number, -1, SQLITE_STATIC);
+        if (sqlite3_step(user_stmt) == SQLITE_ROW) {
+            snprintf(full_name, sizeof(full_name), "%s %s",
+                (const char *)sqlite3_column_text(user_stmt, 0),
+                (const char *)sqlite3_column_text(user_stmt, 1));
+        }
+    }
+    sqlite3_finalize(user_stmt);
+
     const char *sql = "SELECT date, status FROM attendance WHERE registration_number = ? ORDER BY date;";
     sqlite3_stmt *stmt;
     int total = 0, present = 0, absent = 0;
@@ -15,7 +29,7 @@ void generate_student_report(const char* registration_number) {
     }
     sqlite3_bind_text(stmt, 1, registration_number, -1, SQLITE_STATIC);
 
-    printf("Attendance Report for Student: %s\n", registration_number);
+    printf("Attendance Report for: %s (%s)\n", full_name[0] ? full_name : "Unknown", registration_number);
     printf("--------------------------------------------\n");
     printf("%-15s | %-10s\n", "Date", "Status");
     printf("--------------------------------------------\n");
@@ -42,33 +56,45 @@ void generate_student_report(const char* registration_number) {
 }
 
 void view_all_students() {
-    const char *sql = "SELECT registration_number FROM users;";
+    const char *sql = "SELECT registration_number, first_name, last_name FROM users;";
     sqlite3_stmt *stmt;
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
         fprintf(stderr, "Error preparing statement (view_all_students): %s\n", sqlite3_errmsg(db));
         return;
     }
     printf("All registered students:\n");
+    printf("%-15s | %-20s\n", "Reg Number", "Name");
+    printf("--------------------------------------------\n");
     while (sqlite3_step(stmt) == SQLITE_ROW) {
         const char *reg = (const char *)sqlite3_column_text(stmt, 0);
-        printf("Registration Number: %s\n", reg);
+        const char *fname = (const char *)sqlite3_column_text(stmt, 1);
+        const char *lname = (const char *)sqlite3_column_text(stmt, 2);
+        char fullname[2 * MAX_LENGTH];
+        snprintf(fullname, sizeof(fullname), "%s %s", fname, lname);
+        printf("%-15s | %-20s\n", reg, fullname);
     }
     sqlite3_finalize(stmt);
 }
 
 void view_all_attendance() {
-    const char *sql = "SELECT registration_number, date, status FROM attendance;";
+    const char *sql = "SELECT a.registration_number, u.first_name, u.last_name, a.date, a.status FROM attendance a JOIN users u ON a.registration_number = u.registration_number ORDER BY a.date;";
     sqlite3_stmt *stmt;
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
         fprintf(stderr, "Error preparing statement (view_all_attendance): %s\n", sqlite3_errmsg(db));
         return;
     }
     printf("All attendance records:\n");
+    printf("%-15s | %-20s | %-12s | %-10s\n", "Reg Number", "Name", "Date", "Status");
+    printf("---------------------------------------------------------------\n");
     while (sqlite3_step(stmt) == SQLITE_ROW) {
         const char *reg = (const char *)sqlite3_column_text(stmt, 0);
-        const char *date = (const char *)sqlite3_column_text(stmt, 1);
-        int status = sqlite3_column_int(stmt, 2);
-        printf("Registration Number: %s, Date: %s, Status: %s\n", reg, date, (status == 1 ? "Present" : "Absent"));
+        const char *fname = (const char *)sqlite3_column_text(stmt, 1);
+        const char *lname = (const char *)sqlite3_column_text(stmt, 2);
+        const char *date = (const char *)sqlite3_column_text(stmt, 3);
+        int status = sqlite3_column_int(stmt, 4);
+        char fullname[2 * MAX_LENGTH];
+        snprintf(fullname, sizeof(fullname), "%s %s", fname, lname);
+        printf("%-15s | %-20s | %-12s | %-10s\n", reg, fullname, date, (status == 1 ? "Present" : "Absent"));
     }
     sqlite3_finalize(stmt);
 }
