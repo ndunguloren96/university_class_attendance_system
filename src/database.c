@@ -8,7 +8,7 @@ sqlite3 *db;
 
 int initialize_database() {
     int rc = sqlite3_open("university_attendance.db", &db);
-    if (rc) {
+    if (rc != SQLITE_OK) {
         fprintf(stderr, "Cannot open database: %s\n", sqlite3_errmsg(db));
         return 0;
     }
@@ -28,20 +28,17 @@ int initialize_database() {
     char *err_msg = NULL;
     rc = sqlite3_exec(db, user_table, 0, 0, &err_msg);
     if (rc != SQLITE_OK) {
-        fprintf(stderr, "SQL error: %s\n", err_msg);
+        fprintf(stderr, "SQL error (users table): %s\n", err_msg);
         sqlite3_free(err_msg);
         return 0;
     }
 
     rc = sqlite3_exec(db, attendance_table, 0, 0, &err_msg);
     if (rc != SQLITE_OK) {
-        fprintf(stderr, "SQL error: %s\n", err_msg);
+        fprintf(stderr, "SQL error (attendance table): %s\n", err_msg);
         sqlite3_free(err_msg);
         return 0;
     }
-
-    // Ensure auto-commit mode is enabled
-    sqlite3_exec(db, "COMMIT;", 0, 0, &err_msg);
 
     return 1;
 }
