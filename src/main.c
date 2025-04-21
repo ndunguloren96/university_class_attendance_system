@@ -6,6 +6,7 @@
 #include "student_report.h"
 #include "utils.h"
 #include "database.h"
+#include "course_management.h"
 
 #define ADMIN_USERNAME "admin"
 #define ADMIN_PASSWORD "admin123"
@@ -152,7 +153,16 @@ int main() {
             }
         } else {
             if (is_admin) {
-                display_user_menu(is_admin);
+                printf("\n--- Admin Menu ---\n");
+                printf("1. Remove Student\n");
+                printf("2. Delete Unit\n");
+                printf("3. View All Students\n");
+                printf("4. View All Units\n");
+                printf("5. View Unit Details\n");
+                printf("6. View All Attendance Records\n");
+                printf("7. Logout\n");
+                printf("8. Exit\n");
+                printf("Enter your choice: ");
                 if (scanf("%d", &choice) != 1) {
                     printf("Invalid input. Please enter a number.\n");
                     clear_input_buffer();
@@ -162,13 +172,13 @@ int main() {
                 clear_input_buffer();
                 switch (choice) {
                     case 1:
-                        printf("\n--- Add Course ---\n");
-                        add_course(user_id);
+                        printf("\n--- Remove Student ---\n");
+                        remove_student();
                         pause_and_clear();
                         break;
                     case 2:
-                        printf("\n--- Remove Student ---\n");
-                        remove_student();
+                        printf("\n--- Delete Unit ---\n");
+                        delete_unit();
                         pause_and_clear();
                         break;
                     case 3:
@@ -177,32 +187,43 @@ int main() {
                         pause_and_clear();
                         break;
                     case 4:
-                        printf("\n--- All Courses ---\n");
-                        list_courses();
+                        printf("\n--- All Units ---\n");
+                        list_units();
                         pause_and_clear();
                         break;
                     case 5:
+                        printf("\n--- Unit Details ---\n");
+                        view_unit_details();
+                        pause_and_clear();
+                        break;
+                    case 6:
                         printf("\n--- All Attendance Records ---\n");
                         view_all_attendance();
                         pause_and_clear();
                         break;
-                    case 6:
-                        printf("Logged out successfully.\n");
+                    case 7:
+                        printf("Logged out successfully.\n\n");
                         logged_in = 0;
                         is_admin = 0;
                         pause_and_clear();
                         break;
-                    case 7:
-                        printf("Thank you for using the University Class Attendance System. Goodbye!\n");
+                    case 8:
+                        printf("Thank you for using the University Class Attendance System. Goodbye!\n\n");
                         close_database();
                         return 0;
                     default:
-                        printf("Invalid choice. Please enter a number between 1 and 7.\n");
+                        printf("Invalid choice. Please enter a number between 1 and 8.\n\n");
                         pause_and_clear();
                 }
             } else if (strcmp(role, "instructor") == 0) {
                 printf("\n--- Instructor Menu ---\n");
-                printf("1. Add Course\n2. Add Session\n3. Mark Taught Session\n4. View My Courses\n5. Logout\n6. Exit\nEnter your choice: ");
+                printf("1. Add Unit (e.g., unit code: CSC101)\n");
+                printf("2. Add Session\n");
+                printf("3. Mark Taught Session\n");
+                printf("4. View My Units\n");
+                printf("5. Logout\n");
+                printf("6. Exit\n");
+                printf("Enter your choice: ");
                 if (scanf("%d", &choice) != 1) {
                     printf("Invalid input. Please enter a number.\n");
                     clear_input_buffer();
@@ -212,7 +233,8 @@ int main() {
                 clear_input_buffer();
                 switch (choice) {
                     case 1:
-                        add_course(user_id);
+                        printf("\n--- Add Unit ---\n");
+                        add_unit(user_id);
                         pause_and_clear();
                         break;
                     case 2:
@@ -228,21 +250,26 @@ int main() {
                         pause_and_clear();
                         break;
                     case 5:
-                        printf("Logged out successfully.\n");
+                        printf("Logged out successfully.\n\n");
                         logged_in = 0;
                         pause_and_clear();
                         break;
                     case 6:
-                        printf("Thank you for using the University Class Attendance System. Goodbye!\n");
+                        printf("Thank you for using the University Class Attendance System. Goodbye!\n\n");
                         close_database();
                         return 0;
                     default:
-                        printf("Invalid choice.\n");
+                        printf("Invalid choice.\n\n");
                         pause_and_clear();
                 }
             } else if (strcmp(role, "student") == 0) {
                 printf("\n--- Student Menu ---\n");
-                printf("1. Enroll in Course\n2. Mark Attendance\n3. View My Courses\n4. Logout\n5. Exit\nEnter your choice: ");
+                printf("1. Enroll in Unit\n");
+                printf("2. Mark Attendance\n");
+                printf("3. View My Units\n");
+                printf("4. Logout\n");
+                printf("5. Exit\n");
+                printf("Enter your choice: ");
                 if (scanf("%d", &choice) != 1) {
                     printf("Invalid input. Please enter a number.\n");
                     clear_input_buffer();
@@ -252,7 +279,7 @@ int main() {
                 clear_input_buffer();
                 switch (choice) {
                     case 1:
-                        enroll_in_course(user_id);
+                        enroll_in_unit(user_id);
                         pause_and_clear();
                         break;
                     case 2:
@@ -264,16 +291,16 @@ int main() {
                         pause_and_clear();
                         break;
                     case 4:
-                        printf("Logged out successfully.\n");
+                        printf("Logged out successfully.\n\n");
                         logged_in = 0;
                         pause_and_clear();
                         break;
                     case 5:
-                        printf("Thank you for using the University Class Attendance System. Goodbye!\n");
+                        printf("Thank you for using the University Class Attendance System. Goodbye!\n\n");
                         close_database();
                         return 0;
                     default:
-                        printf("Invalid choice.\n");
+                        printf("Invalid choice.\n\n");
                         pause_and_clear();
                 }
             }
