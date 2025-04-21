@@ -1,3 +1,9 @@
+DROP TABLE IF EXISTS attendance;
+DROP TABLE IF EXISTS sessions;
+DROP TABLE IF EXISTS enrollments;
+DROP TABLE IF EXISTS units;
+DROP TABLE IF EXISTS users;
+
 -- USERS: All users (students, instructors, admins)
 CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -10,34 +16,35 @@ CREATE TABLE users (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- COURSES: Each course offered
-CREATE TABLE courses (
+-- UNITS: Each unit offered
+CREATE TABLE units (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    course_code TEXT UNIQUE NOT NULL,
-    course_name TEXT NOT NULL,
+    unit_code TEXT UNIQUE NOT NULL,
+    unit_name TEXT NOT NULL,
     instructor_id INTEGER,
     FOREIGN KEY (instructor_id) REFERENCES users(id)
 );
 
--- ENROLLMENTS: Students enrolled in courses
+-- ENROLLMENTS: Students enrolled in units
 CREATE TABLE enrollments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
-    course_id INTEGER NOT NULL,
+    unit_id INTEGER NOT NULL,
     enrolled_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (course_id) REFERENCES courses(id),
-    UNIQUE(user_id, course_id)
+    FOREIGN KEY (unit_id) REFERENCES units(id),
+    UNIQUE(user_id, unit_id)
 );
 
--- SESSIONS: Each class session for a course
+-- SESSIONS: Each class session for a unit
 CREATE TABLE sessions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    course_id INTEGER NOT NULL,
+    unit_id INTEGER NOT NULL,
+    session_code TEXT UNIQUE NOT NULL,
     session_date TEXT NOT NULL,
     topic TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (course_id) REFERENCES courses(id)
+    FOREIGN KEY (unit_id) REFERENCES units(id)
 );
 
 -- ATTENDANCE: Attendance per student per session
