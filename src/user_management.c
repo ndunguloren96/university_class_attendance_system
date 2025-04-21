@@ -1,5 +1,8 @@
 #include "../include/user_management.h"
 #include "../include/database.h"
+#include "../include/security_utils.h"
+#include "../include/utils.h"
+#include "../include/error_handling.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -7,6 +10,7 @@
 void register_user() {
     char reg_number[MAX_LENGTH], password[MAX_LENGTH], confirm_password[MAX_LENGTH];
     char first_name[MAX_LENGTH], last_name[MAX_LENGTH], email[MAX_LENGTH], role[MAX_LENGTH] = "student";
+    char salt[SALT_SIZE], hash[HASH_SIZE];
     printf("Enter your first name: ");
     fgets(first_name, MAX_LENGTH, stdin);
     first_name[strcspn(first_name, "\n")] = '\0';
@@ -32,7 +36,7 @@ void register_user() {
     const char *check_sql = "SELECT COUNT(*) FROM users WHERE registration_number = ? OR email = ?;";
     sqlite3_stmt *check_stmt;
     if (sqlite3_prepare_v2(db, check_sql, -1, &check_stmt, NULL) != SQLITE_OK) {
-        fprintf(stderr, "Error preparing statement (check_sql): %s\n", sqlite3_errmsg(db));
+        print_error(sqlite3_errmsg(db));
         return;
     }
     sqlite3_bind_text(check_stmt, 1, reg_number, -1, SQLITE_STATIC);
@@ -45,41 +49,44 @@ void register_user() {
     sqlite3_finalize(check_stmt);
 
     if (exists) {
-        printf("Error: Registration number or email already exists. Please try a different one.\n");
+        print_error("Registration number or email already exists. Please try a different one.");
         return;
     }
 
     printf("Enter your password: ");
-    fgets(password, MAX_LENGTH, stdin);
-    password[strcspn(password, "\n")] = '\0';
+    fflush(stdout); // Ensure prompt is shown before input
+    read_password(password, MAX_LENGTH);
 
     printf("Confirm your password: ");
-    fgets(confirm_password, MAX_LENGTH, stdin);
-    confirm_password[strcspn(confirm_password, "\n")] = '\0';
+    fflush(stdout);
+    read_password(confirm_password, MAX_LENGTH);
 
     if (strcmp(password, confirm_password) != 0) {
-        printf("Error: Passwords do not match. Registration cancelled.\n");
+        print_error("Passwords do not match. Registration cancelled.");
         return;
     }
 
-    const char *insert_sql = "INSERT INTO users (registration_number, password, first_name, last_name, email, role) VALUES (?, ?, ?, ?, ?, ?);";
+    generate_salt(salt, SALT_SIZE);
+    hash_password(password, salt, hash);
+
+    const char *insert_sql = "INSERT INTO users (registration_number, password, salt, first_name, last_name, email, role) VALUES (?, ?, ?, ?, ?, ?, ?);";
     sqlite3_stmt *insert_stmt;
     if (sqlite3_prepare_v2(db, insert_sql, -1, &insert_stmt, NULL) != SQLITE_OK) {
-        fprintf(stderr, "Error preparing statement (insert_sql): %s\n", sqlite3_errmsg(db));
+        print_error(sqlite3_errmsg(db));
         return;
     }
     sqlite3_bind_text(insert_stmt, 1, reg_number, -1, SQLITE_STATIC);
-    sqlite3_bind_text(insert_stmt, 2, password, -1, SQLITE_STATIC);
-    sqlite3_bind_text(insert_stmt, 3, first_name, -1, SQLITE_STATIC);
-    sqlite3_bind_text(insert_stmt, 4, last_name, -1, SQLITE_STATIC);
-    sqlite3_bind_text(insert_stmt, 5, email, -1, SQLITE_STATIC);
-    sqlite3_bind_text(insert_stmt, 6, role, -1, SQLITE_STATIC);
+    sqlite3_bind_text(insert_stmt, 2, hash, -1, SQLITE_STATIC);
+    sqlite3_bind_text(insert_stmt, 3, salt, -1, SQLITE_STATIC);
+    sqlite3_bind_text(insert_stmt, 4, first_name, -1, SQLITE_STATIC);
+    sqlite3_bind_text(insert_stmt, 5, last_name, -1, SQLITE_STATIC);
+    sqlite3_bind_text(insert_stmt, 6, email, -1, SQLITE_STATIC);
+    sqlite3_bind_text(insert_stmt, 7, role, -1, SQLITE_STATIC);
 
     if (sqlite3_step(insert_stmt) == SQLITE_DONE) {
         printf("Registration successful! You can now log in.\n");
     } else {
-        fprintf(stderr, "Error executing statement (insert_sql): %s\n", sqlite3_errmsg(db));
-        printf("Error: Could not register user. Please try again.\n");
+        print_error("Could not register user. Please try again.");
     }
 
     sqlite3_finalize(insert_stmt);
@@ -87,27 +94,47 @@ void register_user() {
 
 int login_user(char *first_name, char *last_name, char *role) {
     char reg_number[MAX_LENGTH], password[MAX_LENGTH];
+    char hash[HASH_SIZE], salt[SALT_SIZE];
     printf("Registration number: ");
+    fflush(stdout);
     fgets(reg_number, MAX_LENGTH, stdin);
     reg_number[strcspn(reg_number, "\n")] = '\0';
 
-    printf("Password: ");
-    fgets(password, MAX_LENGTH, stdin);
-    password[strcspn(password, "\n")] = '\0';
+    if (is_account_locked(reg_number)) {
+        print_error("Account is locked due to too many failed login attempts. Please try again later.");
+        return 0;
+    }
 
-    const char *sql = "SELECT first_name, last_name, role FROM users WHERE registration_number = ? AND password = ?;";
+    printf("Password: ");
+    fflush(stdout);
+    read_password(password, MAX_LENGTH);
+
+    const char *sql = "SELECT first_name, last_name, role, password, salt FROM users WHERE registration_number = ?;";
     sqlite3_stmt *stmt;
-    sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+        print_error(sqlite3_errmsg(db));
+        return 0;
+    }
     sqlite3_bind_text(stmt, 1, reg_number, -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 2, password, -1, SQLITE_STATIC);
 
     int found = 0;
     if (sqlite3_step(stmt) == SQLITE_ROW) {
-        found = 1;
         strncpy(first_name, (const char *)sqlite3_column_text(stmt, 0), MAX_LENGTH);
         strncpy(last_name, (const char *)sqlite3_column_text(stmt, 1), MAX_LENGTH);
         strncpy(role, (const char *)sqlite3_column_text(stmt, 2), MAX_LENGTH);
+        strncpy(hash, (const char *)sqlite3_column_text(stmt, 3), HASH_SIZE);
+        strncpy(salt, (const char *)sqlite3_column_text(stmt, 4), SALT_SIZE);
         first_name[MAX_LENGTH-1] = last_name[MAX_LENGTH-1] = role[MAX_LENGTH-1] = '\0';
+        if (verify_password(password, salt, hash)) {
+            found = 1;
+            reset_login_attempts(reg_number);
+        } else {
+            record_failed_login(reg_number);
+            print_error("Invalid credentials.");
+        }
+    } else {
+        record_failed_login(reg_number);
+        print_error("Invalid credentials.");
     }
 
     sqlite3_finalize(stmt);
@@ -117,33 +144,41 @@ int login_user(char *first_name, char *last_name, char *role) {
 
 void reset_password() {
     char reg_number[MAX_LENGTH], new_password[MAX_LENGTH], confirm_password[MAX_LENGTH];
+    char salt[SALT_SIZE], hash[HASH_SIZE];
     printf("Enter your registration number: ");
     fgets(reg_number, MAX_LENGTH, stdin);
     reg_number[strcspn(reg_number, "\n")] = '\0';
 
     printf("Enter your new password: ");
-    fgets(new_password, MAX_LENGTH, stdin);
-    new_password[strcspn(new_password, "\n")] = '\0';
+    fflush(stdout);
+    read_password(new_password, MAX_LENGTH);
 
     printf("Confirm your new password: ");
-    fgets(confirm_password, MAX_LENGTH, stdin);
-    confirm_password[strcspn(confirm_password, "\n")] = '\0';
+    fflush(stdout);
+    read_password(confirm_password, MAX_LENGTH);
 
     if (strcmp(new_password, confirm_password) != 0) {
-        printf("Error: Passwords do not match. Password reset cancelled.\n");
+        print_error("Passwords do not match. Password reset cancelled.");
         return;
     }
 
-    const char *sql = "UPDATE users SET password = ? WHERE registration_number = ?;";
+    generate_salt(salt, SALT_SIZE);
+    hash_password(new_password, salt, hash);
+
+    const char *sql = "UPDATE users SET password = ?, salt = ? WHERE registration_number = ?;";
     sqlite3_stmt *stmt;
-    sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
-    sqlite3_bind_text(stmt, 1, new_password, -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 2, reg_number, -1, SQLITE_STATIC);
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+        print_error(sqlite3_errmsg(db));
+        return;
+    }
+    sqlite3_bind_text(stmt, 1, hash, -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 2, salt, -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 3, reg_number, -1, SQLITE_STATIC);
 
     if (sqlite3_step(stmt) == SQLITE_DONE) {
         printf("Password reset successful! You can now log in with your new password.\n");
     } else {
-        printf("Error: Registration number not found. Password not changed.\n");
+        print_error("Registration number not found. Password not changed.");
     }
 
     sqlite3_finalize(stmt);
