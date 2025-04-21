@@ -3,12 +3,14 @@ DROP TABLE IF EXISTS sessions;
 DROP TABLE IF EXISTS enrollments;
 DROP TABLE IF EXISTS units;
 DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS login_attempts;
 
 -- USERS: All users (students, instructors, admins)
 CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     registration_number TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
+    salt TEXT NOT NULL,
     first_name TEXT NOT NULL,
     last_name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
@@ -57,5 +59,13 @@ CREATE TABLE attendance (
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (session_id) REFERENCES sessions(id),
     UNIQUE(user_id, session_id)
+);
+
+-- LOGIN ATTEMPTS: For account lockout
+CREATE TABLE IF NOT EXISTS login_attempts (
+    reg_number TEXT PRIMARY KEY,
+    attempts INTEGER DEFAULT 0,
+    last_attempt INTEGER,
+    locked_until INTEGER DEFAULT 0
 );
 
