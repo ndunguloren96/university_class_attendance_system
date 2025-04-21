@@ -20,15 +20,15 @@ int initialize_database() {
                              "first_name TEXT NOT NULL, "
                              "last_name TEXT NOT NULL, "
                              "email TEXT UNIQUE NOT NULL, "
-                             "role TEXT NOT NULL CHECK(role IN ('student','instructor','admin')), "
+                             "role TEXT NOT NULL CHECK(role IN ('student','lecturer','admin')), "
                              "created_at DATETIME DEFAULT CURRENT_TIMESTAMP);";
 
     const char *unit_table = "CREATE TABLE IF NOT EXISTS units ("
                              "id INTEGER PRIMARY KEY AUTOINCREMENT, "
                              "unit_code TEXT UNIQUE NOT NULL, "
                              "unit_name TEXT NOT NULL, "
-                             "instructor_id INTEGER, "
-                             "FOREIGN KEY (instructor_id) REFERENCES users(id));";
+                             "lecturer_id INTEGER, "
+                             "FOREIGN KEY (lecturer_id) REFERENCES users(id));";
 
     const char *enrollment_table = "CREATE TABLE IF NOT EXISTS enrollments ("
                                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
