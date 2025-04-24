@@ -23,6 +23,8 @@ void read_input(char *buffer, int length) {
 void read_password(char *buffer, int length) {
     int i = 0;
     char ch;
+    printf("Enter password: "); // Always print prompt here
+    fflush(stdout);
 #ifdef _WIN32
     while ((ch = _getch()) != '\r' && ch != '\n' && i < length - 1) {
         if (ch == '\b' || ch == 127) {

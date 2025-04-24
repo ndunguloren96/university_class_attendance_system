@@ -214,20 +214,25 @@ void remove_student() {
     reg_number[strcspn(reg_number, "\n")] = '\0';
 
     printf("Enter admin password to confirm: ");
-    fgets(admin_password, MAX_LENGTH, stdin);
-    admin_password[strcspn(admin_password, "\n")] = '\0';
+    fflush(stdout);
+    read_password(admin_password, MAX_LENGTH);
 
-    // Check admin password
-    const char *admin_sql = "SELECT password FROM users WHERE role = 'admin' LIMIT 1;";
+    // Fetch admin's hashed password and salt
+    const char *admin_sql = "SELECT password, salt FROM users WHERE role = 'admin' LIMIT 1;";
     sqlite3_stmt *admin_stmt;
     if (sqlite3_prepare_v2(db, admin_sql, -1, &admin_stmt, NULL) != SQLITE_OK) {
         fprintf(stderr, "Error preparing statement (admin_sql): %s\n", sqlite3_errmsg(db));
         return;
     }
     int confirmed = 0;
+    char stored_hash[HASH_SIZE] = {0};
+    char stored_salt[SALT_SIZE] = {0};
     if (sqlite3_step(admin_stmt) == SQLITE_ROW) {
-        const char *real_pass = (const char *)sqlite3_column_text(admin_stmt, 0);
-        if (strcmp(real_pass, admin_password) == 0) confirmed = 1;
+        strncpy(stored_hash, (const char *)sqlite3_column_text(admin_stmt, 0), HASH_SIZE - 1);
+        strncpy(stored_salt, (const char *)sqlite3_column_text(admin_stmt, 1), SALT_SIZE - 1);
+        if (verify_password(admin_password, stored_salt, stored_hash)) {
+            confirmed = 1;
+        }
     }
     sqlite3_finalize(admin_stmt);
 

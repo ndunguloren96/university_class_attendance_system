@@ -1,5 +1,6 @@
 #include "course_management.h"
 #include "database.h"
+#include "utils.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
