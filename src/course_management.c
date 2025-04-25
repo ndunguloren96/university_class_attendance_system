@@ -1,3 +1,9 @@
+/**
+ * course_management.c
+ * Handles all unit (course) management, session creation, enrollment, and attendance marking for the Copa (CUK) system.
+ * Used by lecs, students, and admins for managing academic units and sessions.
+ */
+
 #include "course_management.h"
 #include "database.h"
 #include "utils.h"
@@ -5,6 +11,10 @@
 #include <string.h>
 #include <stdlib.h>
 
+/**
+ * @brief Adds a new unit (course) to the system, assigned to an instructor.
+ * @param instructor_id The user ID of the instructor (lec) creating the unit.
+ */
 void add_unit(int instructor_id) {
     char unit_code[MAX_LENGTH], unit_name[MAX_LENGTH];
     printf("\nEnter unit code (e.g., CSC101, MAT202): "); // Example for instructors
@@ -32,6 +42,9 @@ void add_unit(int instructor_id) {
     sqlite3_finalize(stmt);
 }
 
+/**
+ * @brief Lists all units (courses) in the system, showing code, name, and instructor.
+ */
 void list_units() {
     const char *sql = "SELECT u.id, u.unit_code, u.unit_name, usr.first_name, usr.last_name FROM units u LEFT JOIN users usr ON u.instructor_id = usr.id;";
     sqlite3_stmt *stmt;
@@ -55,6 +68,10 @@ void list_units() {
     sqlite3_finalize(stmt);
 }
 
+/**
+ * @brief Deletes a unit and all related enrollments, sessions, and attendance.
+ * Admin only.
+ */
 void delete_unit() {
     list_units();
     printf("Enter the ID of the unit to delete: ");
@@ -98,6 +115,9 @@ void delete_unit() {
     sqlite3_finalize(stmt);
 }
 
+/**
+ * @brief Shows detailed info for a specific unit, including instructor, enrolled students, and sessions.
+ */
 void view_unit_details() {
     list_units();
     printf("Enter the ID of the unit to view details: ");
@@ -157,6 +177,10 @@ void view_unit_details() {
     }
 }
 
+/**
+ * @brief Allows a student to enroll in a unit.
+ * @param student_id The user ID of the student.
+ */
 void enroll_in_unit(int student_id) {
     list_units();
     printf("Enter unit ID to enroll: ");
@@ -181,6 +205,11 @@ void enroll_in_unit(int student_id) {
     sqlite3_finalize(stmt);
 }
 
+/**
+ * @brief Lists all units a user is enrolled in (student) or teaching (instructor).
+ * @param user_id The user's ID.
+ * @param role "student" or "instructor".
+ */
 void list_enrollments(int user_id, const char *role) {
     const char *sql_student = "SELECT u.id, u.unit_code, u.unit_name FROM enrollments e JOIN units u ON e.unit_id = u.id WHERE e.user_id = ?;";
     const char *sql_instructor = "SELECT id, unit_code, unit_name FROM units WHERE instructor_id = ?;";
@@ -203,6 +232,10 @@ void list_enrollments(int user_id, const char *role) {
     sqlite3_finalize(stmt);
 }
 
+/**
+ * @brief Adds a new session (class) to a unit. Only the assigned instructor can add sessions.
+ * @param instructor_id The user ID of the instructor.
+ */
 void add_session(int instructor_id) {
     list_units();
     printf("Enter unit ID to add session (see 'ID' column above, not the code): ");
@@ -264,6 +297,10 @@ void add_session(int instructor_id) {
     sqlite3_finalize(stmt);
 }
 
+/**
+ * @brief Lists all sessions for a given unit.
+ * @param unit_id The unit's ID.
+ */
 void list_sessions(int unit_id) {
     const char *sql = "SELECT id, session_code, session_date, topic FROM sessions WHERE unit_id = ? ORDER BY session_date;";
     sqlite3_stmt *stmt;
@@ -285,6 +322,11 @@ void list_sessions(int unit_id) {
     sqlite3_finalize(stmt);
 }
 
+/**
+ * @brief Marks attendance for a session, for either a student or instructor.
+ * @param user_id The user's ID.
+ * @param role "student" or "instructor".
+ */
 void mark_attendance_session(int user_id, const char *role) {
     if (strcmp(role, "student") == 0) {
         printf("Your enrolled units:\n");

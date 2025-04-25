@@ -1,9 +1,20 @@
+/**
+ * student_report.c
+ * Reporting functions for the Copa (CUK) Attendance System.
+ * Includes per-student attendance reports, listing all students, and admin attendance overviews.
+ */
+
 #include "student_report.h"
 #include <stdio.h>
 #include <string.h>
 #include "../include/database.h"
 #include "../include/user_management.h"
 
+/**
+ * @brief Generates a detailed attendance report for a specific student.
+ * Looks up the student's name and prints all attendance records, totals, and percentage.
+ * @param registration_number The student's registration number.
+ */
 void generate_student_report(const char* registration_number) {
     const char *user_sql = "SELECT first_name, last_name FROM users WHERE registration_number = ?;";
     sqlite3_stmt *user_stmt;
@@ -55,6 +66,10 @@ void generate_student_report(const char* registration_number) {
     }
 }
 
+/**
+ * @brief Lists all registered students in the system.
+ * Prints registration number and full name.
+ */
 void view_all_students() {
     const char *sql = "SELECT registration_number, first_name, last_name FROM users;";
     sqlite3_stmt *stmt;
@@ -76,6 +91,10 @@ void view_all_students() {
     sqlite3_finalize(stmt);
 }
 
+/**
+ * @brief Admin function: Lists all attendance records for all students.
+ * Shows registration number, name, date, and status for each record.
+ */
 void view_all_attendance() {
     const char *sql = "SELECT u.registration_number, u.first_name, u.last_name, a.marked_at, a.status "
                       "FROM attendance a "
