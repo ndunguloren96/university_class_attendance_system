@@ -1,22 +1,48 @@
+/**
+ * @file main.c
+ * @brief Entry point for the University Class Attendance System.
+ *
+ * This file contains the main loop and menu logic for the system, handling user registration,
+ * login, password reset, and role-based menu navigation for admins, instructors, and students.
+ * It integrates with modules for authentication, attendance, reporting, course management, and
+ * security. The system uses an SQLite database for persistent storage.
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>      // For countdown sleep during lockout
+#include <unistd.h>    // For sleep() on Unix/Linux
 #include "auth_functions.h"
 #include "attendance.h"
 #include "student_report.h"
 #include "utils.h"
 #include "database.h"
 #include "course_management.h"
+#include "security_utils.h" // For password hashing, lockout, etc.
+#include "error_handling.h" // For error and success message utilities
 
-#define ADMIN_USERNAME "admin"
-#define ADMIN_PASSWORD "admin123"
+// External declarations for password strength check and success message printing
+extern int is_strong_password(const char *password);
+extern void print_success(const char *msg);
 
+/**
+ * @brief Pauses execution and clears the terminal screen.
+ *
+ * Prompts the user to press Enter to continue, then clears the screen.
+ * Uses "clear" for Unix/Linux and "cls" for Windows.
+ */
 void pause_and_clear() {
     printf("\nPress Enter to continue...");
     getchar();
     system("clear"); // On Windows use "cls"
 }
 
+/**
+ * @brief Displays the main menu for unauthenticated users.
+ *
+ * Shows options for registration, login, password reset, and exit.
+ */
 void display_main_menu() {
     printf("\n============================================\n");
     printf("  THE CO-OPERATIVE UNIVERSITY OF KENYA\n");
@@ -31,6 +57,12 @@ void display_main_menu() {
     printf("Enter your choice: ");
 }
 
+/**
+ * @brief Displays the user menu after successful login.
+ *
+ * Shows different options depending on whether the user is an admin.
+ * @param is_admin 1 if the user is an admin, 0 otherwise.
+ */
 void display_user_menu(int is_admin) {
     printf("\n============================================\n");
     printf("User Menu\n");
@@ -51,22 +83,104 @@ void display_user_menu(int is_admin) {
     printf("Enter your choice: ");
 }
 
+/**
+ * @brief Handles admin login with lockout and password verification.
+ *
+ * Prompts for registration number and email, then password. Locks out after 3 failed attempts.
+ * @return 1 if login successful, 0 otherwise.
+ */
 int admin_login() {
-    char username[MAX_LENGTH];
+    char reg_number[MAX_LENGTH];
+    char email[MAX_LENGTH];
     char password[MAX_LENGTH];
+    char db_email[MAX_LENGTH], db_hash[HASH_SIZE], db_salt[SALT_SIZE];
+    int found = 0;
+    int attempts = 0;
     printf("\n--- Admin Login ---\n");
-    printf("Enter admin username: ");
-    read_input(username, sizeof(username));
-    printf("Enter admin password: ");
-    read_input(password, sizeof(password));
-    if (strcmp(username, ADMIN_USERNAME) == 0 && strcmp(password, ADMIN_PASSWORD) == 0) {
-        printf("Admin login successful!\n");
-        return 1;
+    printf("Enter admin registration number: ");
+    read_input(reg_number, sizeof(reg_number));
+    printf("Enter admin email: ");
+    read_input(email, sizeof(email));
+
+    // Check if account is locked due to failed attempts
+    if (is_account_locked(reg_number)) {
+        print_error("Account is locked due to too many failed login attempts. Please try again later.");
+        return 0;
     }
-    printf("Invalid admin credentials.\n");
+
+    // Allow up to 3 login attempts
+    while (attempts < 3) {
+        read_password(password, sizeof(password));
+
+        // Fetch admin info from DB
+        const char *sql = "SELECT email, password, salt FROM users WHERE registration_number = ? AND role = 'admin';";
+        sqlite3_stmt *stmt;
+        if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+            print_error("Database error.");
+            return 0;
+        }
+        sqlite3_bind_text(stmt, 1, reg_number, -1, SQLITE_STATIC);
+
+        if (sqlite3_step(stmt) == SQLITE_ROW) {
+            strncpy(db_email, (const char *)sqlite3_column_text(stmt, 0), MAX_LENGTH-1);
+            strncpy(db_hash, (const char *)sqlite3_column_text(stmt, 1), HASH_SIZE-1);
+            strncpy(db_salt, (const char *)sqlite3_column_text(stmt, 2), SALT_SIZE-1);
+            db_email[MAX_LENGTH-1] = db_hash[HASH_SIZE-1] = db_salt[SALT_SIZE-1] = '\0';
+            if (strcmp(email, db_email) == 0 && verify_password(password, db_salt, db_hash)) {
+                found = 1;
+                reset_login_attempts(reg_number);
+            } else {
+                record_failed_login(reg_number);
+            }
+        } else {
+            record_failed_login(reg_number);
+        }
+        sqlite3_finalize(stmt);
+
+        if (found) {
+            print_success("Admin login successful!");
+            return 1;
+        } else {
+            attempts++;
+            if (attempts < 3)
+                print_error("Invalid admin credentials.");
+        }
+    }
+
+    // Lockout after 3 failed attempts, with countdown
+    print_error("Too many failed attempts. Please wait 30 seconds before trying again.");
+    // Lockout for 30 seconds in DB
+    const char *lock_sql = "UPDATE login_attempts SET locked_until = strftime('%%s','now') + 30 WHERE reg_number = ?;";
+    sqlite3_stmt *lock_stmt;
+    if (sqlite3_prepare_v2(db, lock_sql, -1, &lock_stmt, NULL) == SQLITE_OK) {
+        sqlite3_bind_text(lock_stmt, 1, reg_number, -1, SQLITE_STATIC);
+        sqlite3_step(lock_stmt);
+        sqlite3_finalize(lock_stmt);
+    }
+
+    // Live countdown (red)
+    for (int i = 30; i > 0; --i) {
+        printf("\r\033[1;31mLocked out. Please wait %2d seconds... \033[0m", i);
+        fflush(stdout);
+#ifdef _WIN32
+        Sleep(1000);
+#else
+        sleep(1);
+#endif
+    }
+    printf("\r\033[1;32mYou may now try again. Press Enter to continue...\033[0m      \n");
+    fflush(stdout);
+    getchar(); // Wait for Enter
     return 0;
 }
 
+/**
+ * @brief Main entry point for the application.
+ *
+ * Handles the main menu loop, user authentication, and role-based navigation.
+ * Initializes and closes the database connection.
+ * @return int Exit status code.
+ */
 int main() {
     if (!initialize_database()) {
         fprintf(stderr, "Failed to initialize database. Exiting.\n");
@@ -75,13 +189,14 @@ int main() {
 
     int choice;
     char first_name[MAX_LENGTH], last_name[MAX_LENGTH], role[MAX_LENGTH];
-    char reg_number[MAX_LENGTH];
     int user_id = 0;
     int logged_in = 0;
     int is_admin = 0;
 
+    // Main application loop
     while (1) {
         if (!logged_in) {
+            // Show main menu for unauthenticated users
             display_main_menu();
             if (scanf("%d", &choice) != 1) {
                 printf("Invalid input. Please enter a number.\n");
@@ -109,7 +224,7 @@ int main() {
                     clear_input_buffer();
                     if (login_type == 1) {
                         if (login_user(first_name, last_name, role)) {
-                            // Fetch user_id
+                            // Fetch user_id from DB
                             const char *sql = "SELECT id FROM users WHERE first_name = ? AND last_name = ? AND role = ?;";
                             sqlite3_stmt *stmt;
                             sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
@@ -121,11 +236,12 @@ int main() {
                             }
                             sqlite3_finalize(stmt);
 
+                            print_success("Login successful!");
                             printf("Welcome, %s %s!\n", first_name, last_name);
                             logged_in = 1;
                             is_admin = (strcmp(role, "admin") == 0);
                         } else {
-                            printf("Invalid credentials. Please try again.\n");
+                            print_error("Invalid credentials. Please try again.");
                         }
                     } else if (login_type == 2) {
                         if (admin_login()) {
@@ -133,7 +249,7 @@ int main() {
                             is_admin = 1;
                         }
                     } else {
-                        printf("Invalid login type. Please enter 1 or 2.\n");
+                        print_error("Invalid login type. Please enter 1 or 2.");
                     }
                     pause_and_clear();
                     break;
@@ -152,6 +268,7 @@ int main() {
                     pause_and_clear();
             }
         } else {
+            // Role-based menu for authenticated users
             if (is_admin) {
                 printf("\n--- Admin Menu ---\n");
                 printf("1. Remove Student\n");
