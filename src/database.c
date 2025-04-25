@@ -1,3 +1,9 @@
+/**
+ * database.c
+ * Handles SQLite database connection, schema creation, and closing for the Copa (CUK) Attendance System.
+ * All persistent data (users, units, sessions, attendance) lives here.
+ */
+
 #include "database.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,6 +12,10 @@
 
 sqlite3 *db;
 
+/**
+ * @brief Initializes the SQLite database and creates all required tables if they don't exist.
+ * @return 1 on success, 0 on failure.
+ */
 int initialize_database() {
     int rc = sqlite3_open("university_attendance.db", &db);
     if (rc != SQLITE_OK) {
@@ -93,6 +103,9 @@ int initialize_database() {
     return 1;
 }
 
+/**
+ * @brief Closes the SQLite database connection.
+ */
 void close_database() {
     sqlite3_close(db);
 }
