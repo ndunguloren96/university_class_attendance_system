@@ -1,3 +1,10 @@
+/**
+ * security_utils.c
+ * Security utilities for the Copa (CUK) Attendance System.
+ * Handles password hashing, salt generation, password verification, and login attempt tracking.
+ * Keeps CUK students', lecs', and admins' accounts safe from brute force and weak passwords.
+ */
+
 #include "../include/security_utils.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,6 +13,11 @@
 #include <openssl/sha.h>
 #include "../include/database.h"
 
+/**
+ * @brief Generates a random salt string for password hashing.
+ * @param salt Buffer to store the generated salt.
+ * @param length Length of the salt (including null terminator).
+ */
 void generate_salt(char *salt, int length) {
     static const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     for (int i = 0; i < length - 1; i++) {
@@ -15,6 +27,12 @@ void generate_salt(char *salt, int length) {
     salt[length - 1] = '\0';
 }
 
+/**
+ * @brief Hashes a password with a salt using SHA-256.
+ * @param password The plain password.
+ * @param salt The salt string.
+ * @param hash Output buffer for the resulting hash (hex string).
+ */
 void hash_password(const char *password, const char *salt, char *hash) {
     char salted[256];
     snprintf(salted, sizeof(salted), "%s%s", password, salt);
@@ -25,12 +43,24 @@ void hash_password(const char *password, const char *salt, char *hash) {
     hash[HASH_SIZE-1] = '\0';
 }
 
+/**
+ * @brief Verifies a password against a stored hash and salt.
+ * @param password The plain password.
+ * @param salt The salt string.
+ * @param hash The stored hash to compare against.
+ * @return true if password matches, false otherwise.
+ */
 bool verify_password(const char *password, const char *salt, const char *hash) {
     char calc_hash[HASH_SIZE];
     hash_password(password, salt, calc_hash);
     return strcmp(calc_hash, hash) == 0;
 }
 
+/**
+ * @brief Checks the number of failed login attempts for a registration number.
+ * @param reg_number The user's registration number.
+ * @return Number of failed attempts.
+ */
 int check_login_attempts(const char *reg_number) {
     const char *sql = "SELECT attempts FROM login_attempts WHERE reg_number = ?;";
     sqlite3_stmt *stmt;
@@ -44,6 +74,10 @@ int check_login_attempts(const char *reg_number) {
     return attempts;
 }
 
+/**
+ * @brief Records a failed login attempt and locks the account if needed.
+ * @param reg_number The user's registration number.
+ */
 void record_failed_login(const char *reg_number) {
     const char *sql = "INSERT INTO login_attempts (reg_number, attempts, last_attempt) VALUES (?, 1, strftime('%s','now')) "
                       "ON CONFLICT(reg_number) DO UPDATE SET attempts = attempts + 1, last_attempt = strftime('%s','now');";
@@ -65,6 +99,10 @@ void record_failed_login(const char *reg_number) {
     }
 }
 
+/**
+ * @brief Resets the failed login attempts for a registration number.
+ * @param reg_number The user's registration number.
+ */
 void reset_login_attempts(const char *reg_number) {
     const char *sql = "DELETE FROM login_attempts WHERE reg_number = ?;";
     sqlite3_stmt *stmt;
@@ -75,6 +113,11 @@ void reset_login_attempts(const char *reg_number) {
     }
 }
 
+/**
+ * @brief Checks if an account is currently locked due to too many failed login attempts.
+ * @param reg_number The user's registration number.
+ * @return true if locked, false otherwise.
+ */
 bool is_account_locked(const char *reg_number) {
     const char *sql = "SELECT locked_until FROM login_attempts WHERE reg_number = ?;";
     sqlite3_stmt *stmt;
