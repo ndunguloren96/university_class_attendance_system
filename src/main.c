@@ -1,17 +1,14 @@
 /**
- * @file main.c
- * @brief Entry point for the University Class Attendance System.
- *
- * This file contains the main loop and menu logic for the system, handling user registration,
- * login, password reset, and role-based menu navigation for admins, instructors, and students.
- * It integrates with modules for authentication, attendance, reporting, course management, and
- * security. The system uses an SQLite database for persistent storage.
+ * main.c
+ * Copa (CUK) Class Attendance System - Main Engine
+ * Handles all the main menu logic, login, registration, and role-based navigation.
+ * Proudly crafted for The Co-operative University of Kenya (CUK) by a fellow coder.
  */
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <time.h>      // For countdown sleep during lockout
+#include <time.h>      // For lockout countdowns
 #include <unistd.h>    // For sleep() on Unix/Linux
 #include "auth_functions.h"
 #include "attendance.h"
@@ -19,30 +16,26 @@
 #include "utils.h"
 #include "database.h"
 #include "course_management.h"
-#include "security_utils.h" // For password hashing, lockout, etc.
-#include "error_handling.h" // For error and success message utilities
+#include "security_utils.h"
+#include "error_handling.h"
 
-// External declarations for password strength check and success message printing
+// Copa-wide constants for a bit of school pride
+#define COPA_SCHOOL "The Co-operative University of Kenya (CUK)"
+#define COPA_SHORT "Copa"
+
+// External helpers (from other .c files)
 extern int is_strong_password(const char *password);
 extern void print_success(const char *msg);
 
-/**
- * @brief Pauses execution and clears the terminal screen.
- *
- * Prompts the user to press Enter to continue, then clears the screen.
- * Uses "clear" for Unix/Linux and "cls" for Windows.
- */
+// Pause and clear the screen for a fresh start (Copa style!)
 void pause_and_clear() {
+    // Give the user a breather before the next screen
     printf("\nPress Enter to continue...");
     getchar();
-    system("clear"); // On Windows use "cls"
+    system("clear"); // On Windows, swap for "cls" if you want
 }
 
-/**
- * @brief Displays the main menu for unauthenticated users.
- *
- * Shows options for registration, login, password reset, and exit.
- */
+// Welcome menu for everyone (students, lecs, admins, even guests!)
 void display_main_menu() {
     printf("\n============================================\n");
     printf("  THE CO-OPERATIVE UNIVERSITY OF KENYA\n");
@@ -57,12 +50,7 @@ void display_main_menu() {
     printf("Enter your choice: ");
 }
 
-/**
- * @brief Displays the user menu after successful login.
- *
- * Shows different options depending on whether the user is an admin.
- * @param is_admin 1 if the user is an admin, 0 otherwise.
- */
+// Menu after login, with options based on your Copa role
 void display_user_menu(int is_admin) {
     printf("\n============================================\n");
     printf("User Menu\n");
@@ -83,13 +71,9 @@ void display_user_menu(int is_admin) {
     printf("Enter your choice: ");
 }
 
-/**
- * @brief Handles admin login with lockout and password verification.
- *
- * Prompts for registration number and email, then password. Locks out after 3 failed attempts.
- * @return 1 if login successful, 0 otherwise.
- */
+// Admin login with lockout and password check (no shortcuts for Copa admins!)
 int admin_login() {
+    // This function is for the Copa admins only. If you mess up your password 3 times, you get a timeout.
     char reg_number[MAX_LENGTH];
     char email[MAX_LENGTH];
     char password[MAX_LENGTH];
@@ -102,17 +86,17 @@ int admin_login() {
     printf("Enter admin email: ");
     read_input(email, sizeof(email));
 
-    // Check if account is locked due to failed attempts
+    // Too many wrong tries? Chill for a bit!
     if (is_account_locked(reg_number)) {
         print_error("Account is locked due to too many failed login attempts. Please try again later.");
         return 0;
     }
 
-    // Allow up to 3 login attempts
+    // 3 strikes and you're out (for a while)
     while (attempts < 3) {
         read_password(password, sizeof(password));
 
-        // Fetch admin info from DB
+        // Check admin details in DB
         const char *sql = "SELECT email, password, salt FROM users WHERE registration_number = ? AND role = 'admin';";
         sqlite3_stmt *stmt;
         if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) {
@@ -147,7 +131,7 @@ int admin_login() {
         }
     }
 
-    // Lockout after 3 failed attempts, with countdown
+    // 3 fails: lockout and dramatic countdown
     print_error("Too many failed attempts. Please wait 30 seconds before trying again.");
     // Lockout for 30 seconds in DB
     const char *lock_sql = "UPDATE login_attempts SET locked_until = strftime('%%s','now') + 30 WHERE reg_number = ?;";
@@ -158,7 +142,7 @@ int admin_login() {
         sqlite3_finalize(lock_stmt);
     }
 
-    // Live countdown (red)
+    // Live countdown (red, for drama)
     for (int i = 30; i > 0; --i) {
         printf("\r\033[1;31mLocked out. Please wait %2d seconds... \033[0m", i);
         fflush(stdout);
@@ -174,14 +158,9 @@ int admin_login() {
     return 0;
 }
 
-/**
- * @brief Main entry point for the application.
- *
- * Handles the main menu loop, user authentication, and role-based navigation.
- * Initializes and closes the database connection.
- * @return int Exit status code.
- */
+// Main Copa loop: registration, login, and all the fun stuff
 int main() {
+    // Welcome to the Copa backend! Let's get this show on the road.
     if (!initialize_database()) {
         fprintf(stderr, "Failed to initialize database. Exiting.\n");
         return 1;
@@ -193,10 +172,10 @@ int main() {
     int logged_in = 0;
     int is_admin = 0;
 
-    // Main application loop
+    // Copa's main event loop
     while (1) {
         if (!logged_in) {
-            // Show main menu for unauthenticated users
+            // Not logged in? Here's your Copa menu
             display_main_menu();
             if (scanf("%d", &choice) != 1) {
                 printf("Invalid input. Please enter a number.\n");
@@ -268,7 +247,7 @@ int main() {
                     pause_and_clear();
             }
         } else {
-            // Role-based menu for authenticated users
+            // You're logged in! Let's see what you can do...
             if (is_admin) {
                 printf("\n--- Admin Menu ---\n");
                 printf("1. Remove Student\n");
@@ -333,6 +312,7 @@ int main() {
                         pause_and_clear();
                 }
             } else if (strcmp(role, "instructor") == 0) {
+                // Lec menu - for our beloved Copa lecs
                 printf("\n--- Instructor Menu ---\n");
                 printf("1. Add Unit (e.g., unit code: CSC101)\n");
                 printf("2. Add Session\n");
@@ -380,6 +360,7 @@ int main() {
                         pause_and_clear();
                 }
             } else if (strcmp(role, "student") == 0) {
+                // Student menu - Copa students, this is your playground
                 printf("\n--- Student Menu ---\n");
                 printf("1. Enroll in Unit\n");
                 printf("2. Mark Attendance\n");
