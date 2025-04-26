@@ -38,8 +38,7 @@ This project is a scalable, user-friendly C-based backend for managing universit
    ```
 ## Other tools you might need:
 1. WSL for Windows
-2. Install PostgreSQL or MSQL
-3. Make file extension
+
 
 ## License
 
