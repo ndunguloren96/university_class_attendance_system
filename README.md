@@ -1,6 +1,7 @@
 # University Class Attendance System
 
 This project is a scalable, user-friendly C-based backend for managing university class attendance, supporting multiple units, lecturers, and roles.
+This is our school project.
 
 ## Features
 
@@ -26,19 +27,28 @@ This project is a scalable, user-friendly C-based backend for managing universit
 ## How to Build and Run
 
 1. Ensure you have GCC and SQLite development libraries installed.
-2. Recreate the database:
+2. Clone this repo:
    ```bash
-   rm university_attendance.db
+   git clone https://github.com/ndunguloren96/university_class_attendance_system
+   ```
+   or you can fork it and clone it from your GitHub Account.
+4. Create the database:
+   ```bash
    sqlite3 university_attendance.db < schema.sql
    ```
-3. Build and run:
+5. Build and run:
    ```bash
+   make clean
    make
    ./bin/university_system
    ```
+   Checkout screenshots for what to expect when the codebase is running correctly.
+   
 ## Other tools you might need:
 1. WSL for Windows
 
+##Colaboration
+If interested, you can continue with the development of this project. 
 
 ## License
 
