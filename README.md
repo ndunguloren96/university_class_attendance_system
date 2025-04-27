@@ -47,7 +47,7 @@ This is our school project.
 ## Other tools you might need:
 1. WSL for Windows
 
-## Colaboration
+## Collaboration
 If interested, you can continue with the development of this project. 
 
 ## License
