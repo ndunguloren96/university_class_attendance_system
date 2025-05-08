@@ -1,7 +1,7 @@
 # University Class Attendance System
 
 This project is a scalable, user-friendly C-based backend for managing university class attendance, supporting multiple units, lecturers, and roles.
-This is our school project.
+This is a school project assignment Structured Programming LAB.
 
 ## Features
 
